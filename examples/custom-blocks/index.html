@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PacEditor — custom blocks</title>
-  <link rel="stylesheet" href="../../dist/pac-editor.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pac-editor@0.1/dist/pac-editor.min.css">
   <style>
     html, body { margin: 0; height: 100%; }
     #editor { height: 100%; }
@@ -26,7 +26,7 @@
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
   <!-- ES module build. Opening this over file:// is blocked by browsers; run `npm run dev` and use http://localhost:8000/examples/custom-blocks/ -->
   <script type="module">
-    import { createEditor, extendConfig, esc, safeUrl, renderRich } from '../../dist/pac-editor.esm.js';
+    import { createEditor, extendConfig, esc, safeUrl, renderRich } from 'https://cdn.jsdelivr.net/npm/pac-editor@0.1/dist/pac-editor.esm.js';
 
     // A block is { label, icon?, fields, defaultProps, render(props, { slot, edit }) }.
     // render returns an HTML string: wrap every user value in esc(), every URL in safeUrl().

@@ -7,7 +7,7 @@
   <!-- Optional fonts; the styles fall back to system fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-  <link rel="stylesheet" href="../../dist/pac-editor.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pac-editor@0.1/dist/pac-editor.min.css">
   <style>
     html, body { margin: 0; height: 100%; }
     #editor { height: 100%; }
@@ -17,7 +17,7 @@
   <div id="editor"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
-  <script src="../../dist/pac-editor.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pac-editor@0.1/dist/pac-editor.min.js"></script>
   <script>
     // Served over http (npm run dev): fetch works. The sample page is in examples/data/.
     fetch('../data/sample-page.json').then(r => r.json()).catch(() => null).then(sample => {

@@ -110,7 +110,7 @@ Use the same `config` when you call `render` on the server.
 | [Security](docs/security.md) | How output is kept safe, and what your server must still do |
 | [Architecture](docs/architecture.md) | How the code is organised, for contributors |
 
-Examples live in [`examples/`](examples/). Try them [online](https://chooyee.github.io/pac-editor/examples/), or run `npm run dev` and open <http://localhost:8000/examples/>. The online copy is rebuilt from `main` by the [Pages workflow](.github/workflows/pages.yml).
+Examples live in [`examples/`](examples/). Try them [online](https://chooyee.github.io/pac-editor/examples/), or run `npm run dev` and open <http://localhost:8000/examples/>. The online copy is rebuilt from `main` by the [Pages workflow](.github/workflows/pages.yml). The example pages load PacEditor from jsDelivr (`pac-editor@0.1`), so they show the published npm version, not your local `dist/`.
 
 ## Browser support
 
