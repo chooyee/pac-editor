@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Published page</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap">
+  <!-- A published page only needs the block styles, not the editor -->
+  <link rel="stylesheet" href="../../dist/blocks.css">
+  <style>
+    body { margin: 0; }
+    .page { max-width: 1100px; margin: 0 auto; }
+    .empty { font: 15px system-ui, sans-serif; padding: 48px 24px; text-align: center; }
+  </style>
+</head>
+<body>
+  <main class="page" id="page"></main>
+
+  <!-- render() is all a public page needs. On a real site, render on the server instead (see examples/server-render). -->
+  <script src="../../dist/pac-editor.js"></script>
+  <script>
+    let data = null;
+    try { data = JSON.parse(localStorage.getItem('pac-editor-demo-published')); } catch (e) { /* nothing published */ }
+    const page = document.getElementById('page');
+    if (data && PacEditor.validateData(PacEditor.defaultConfig, data).ok) {
+      document.title = data.root?.props?.title || document.title;
+      page.innerHTML = PacEditor.render(PacEditor.defaultConfig, data);
+    } else {
+      page.innerHTML = '<p class="empty">Nothing published yet. Open the demo editor and press “Publish &amp; view”.</p>';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+# Changelog
+
+All notable changes to this project are documented here.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Before 1.0, minor versions may contain breaking changes; they are listed under **Changed**.
+
+## [Unreleased]
+
+## [0.1.0] - 2026-10-30
+
+First release as a library, built from the single-file prototype (kept in `prototype/`).
+
+### Added
+- `createEditor(target, options)` / `Editor` class. Several editors can share a page, and `destroy()` removes all listeners.
+- Editor options: `config`, `data`, `onPublish`, `onChange`, `upload`, `quill`, `storageKey`, `rememberLayout`, `theme`, `title`, `publishLabel`, `showImport`, `exampleData`, `viewports`.
+- Editor methods: `getData`, `setData`, `undo`, `redo`, `select`, `setTheme`, `setPanel`, `destroy`.
+- `pac-editor/render` entry with no DOM dependency: `render`, `renderRich`, `validateData`, `defaultConfig`, `extendConfig`, `esc`, `safeUrl` and helpers. Ships as ESM and CommonJS.
+- Built-in blocks: Heading, Text (rich text), Notice, Picture, Button, Hero, Columns, Card grid, Spacer.
+- Field types: text, textarea, number, richtext, select, radio, image, array (with `getItemSummary` and `max`), object, slot, custom.
+- Rich text with Quill 2, stored as a Delta and rendered safely by `renderRich`.
+- Collapsible side panels that slide on wide screens and become drawers on narrow screens; collapsible outline with a block count; palette icons.
+- Light and dark themes through `--fp-*` CSS variables. All CSS is scoped under `.fp-editor` and `.fp-site`.
+- Phone layout for blocks uses a container query, so the Mobile preview is accurate.
+- TypeScript declarations, unit tests, examples and documentation.
+
+### Changed (compared with the prototype)
+- CSS classes and variables now use the `fp-` prefix; the published root is `.fp-site` (was `.site`).
+- Style values in built-in blocks (column ratio, picture size and shape) come from fixed lists instead of being escaped.
+
+[Unreleased]: https://github.com/chooyee/pac-editor/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/chooyee/pac-editor/releases/tag/v0.1.0

@@ -1,0 +1,78 @@
+{
+  "name": "pac-editor",
+  "version": "0.1.0",
+  "description": "Framework-free drag-and-drop page builder with a Puck-compatible data model. Drop it into any HTML page with one script tag.",
+  "keywords": [
+    "page-builder",
+    "cms",
+    "visual-editor",
+    "drag-and-drop",
+    "wysiwyg",
+    "puck",
+    "vanilla-js",
+    "no-framework"
+  ],
+  "license": "MIT",
+  "author": "Lee Choo Yee",
+  "homepage": "https://github.com/chooyee/pac-editor#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chooyee/pac-editor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/chooyee/pac-editor/issues"
+  },
+  "type": "module",
+  "main": "./dist/render.cjs",
+  "module": "./dist/pac-editor.esm.js",
+  "browser": "./dist/pac-editor.esm.js",
+  "types": "./types/index.d.ts",
+  "unpkg": "./dist/pac-editor.min.js",
+  "jsdelivr": "./dist/pac-editor.min.js",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/pac-editor.esm.js",
+      "default": "./dist/pac-editor.esm.js"
+    },
+    "./render": {
+      "types": "./types/render.d.ts",
+      "import": "./dist/render.esm.js",
+      "require": "./dist/render.cjs"
+    },
+    "./editor.css": "./dist/pac-editor.css",
+    "./blocks.css": "./dist/blocks.css",
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "types",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/dev.mjs",
+    "test": "node --test",
+    "prepublishOnly": "npm test && npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "quill": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "quill": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

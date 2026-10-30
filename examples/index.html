@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PacEditor examples</title>
+  <style>
+    body { font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; max-width: 720px; margin: 0 auto; padding: 32px 16px; color: #17201e; background: #f8faf9; }
+    @media (prefers-color-scheme: dark) { body { color: #e4ebe9; background: #121716; } a { color: #7d9cf2; } code { background: #252e2c; } }
+    h1 { margin: 0 0 4px; } li { margin: 10px 0; } code { background: #eef1f0; padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+  </style>
+</head>
+<body>
+  <h1>PacEditor examples</h1>
+  <p>Run <code>npm run dev</code> and open this page at <code>http://localhost:8000/examples/</code>.</p>
+  <ul>
+    <li><a href="basic/">Basic</a> — script tags, inline page data, autosaved draft. Also works when opened as a file.</li>
+    <li><a href="demo/">Demo</a> — the full sample page; “Publish &amp; view” renders it on a <a href="demo/view.html">public page</a>.</li>
+    <li><a href="custom-blocks/">Custom blocks</a> — ES module import, three new blocks (rich text, array and custom fields), one block removed.</li>
+    <li><code>node examples/server-render/render.mjs</code> — render page data to static HTML on the server.</li>
+  </ul>
+</body>
+</html>

@@ -1,0 +1,1200 @@
+<title>Vanilla Page Builder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: three-pane editor (blocks | canvas | properties), stacking to one column on phones */
+:root {
+  --bg: #eef1f0;
+  --panel: #f8faf9;
+  --line: #d5dcda;
+  --fg: #17201e;
+  --muted: #5d6b68;
+  --accent: #2f5bd3;
+  --accent-soft: #e3eafb;
+  --danger: #b4322a;
+  --paper: #ffffff;
+  --paper-fg: #1b2422;
+  --paper-muted: #56625f;
+  --paper-tint: #f2f5f4;
+  --warn-bg: #fff4e0; --warn-fg: #7a4b00;
+  --info-bg: #e7efff; --info-fg: #1f3f99;
+  --font-ui: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121716; --panel: #181e1d; --line: #2c3533; --fg: #e4ebe9; --muted: #95a39f;
+  --accent: #7d9cf2; --accent-soft: #23304f; --danger: #f08277;
+  --paper: #1d2423; --paper-fg: #e8eeec; --paper-muted: #a3b0ad; --paper-tint: #252e2c;
+  --warn-bg: #3a2c12; --warn-fg: #f3c77a; --info-bg: #1d2a4a; --info-fg: #a9c0ff;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #121716; --panel: #181e1d; --line: #2c3533; --fg: #e4ebe9; --muted: #95a39f;
+  --accent: #7d9cf2; --accent-soft: #23304f; --danger: #f08277;
+  --paper: #1d2423; --paper-fg: #e8eeec; --paper-muted: #a3b0ad; --paper-tint: #252e2c;
+  --warn-bg: #3a2c12; --warn-fg: #f3c77a; --info-bg: #1d2a4a; --info-fg: #a9c0ff;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 14px; }
+* { box-sizing: border-box; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+.topbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line); background: var(--panel);
+}
+.brand { font-weight: 700; letter-spacing: -0.01em; margin-right: auto; display: flex; align-items: baseline; gap: 8px; }
+.brand small { font-family: var(--font-mono); font-weight: 400; font-size: 11px; color: var(--muted); }
+.grp { display: flex; gap: 4px; }
+.btn {
+  border: 1px solid var(--line); background: var(--paper); border-radius: 6px;
+  padding: 6px 10px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+.btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.btn svg { width: 15px; height: 15px; }
+
+/* Side panels: docked columns that can be collapsed on wide screens, slide-in drawers at 960px and below */
+.app { --lw: 240px; --rw: 300px; }
+.main { display: grid; grid-template-columns: var(--lw) minmax(0, 1fr) var(--rw); min-height: 0; }
+.side { background: var(--panel); overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.side.left { border-right: 1px solid var(--line); grid-column: 1; }
+.stage { grid-column: 2; }
+.side.right { border-left: 1px solid var(--line); grid-column: 3; }
+.side-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -4px 0 -8px; }
+.side-head .label { margin: 0; }
+.icon-btn { border: 1px solid transparent; background: none; border-radius: 6px; width: 30px; height: 30px; display: grid; place-items: center; color: var(--muted); flex: none; }
+.icon-btn:hover { border-color: var(--line); color: var(--fg); background: var(--paper); }
+.icon-btn svg { width: 16px; height: 16px; }
+.btn[aria-expanded="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+#props { display: flex; flex-direction: column; gap: 20px; }
+.scrim { display: none; }
+/* Wide screens: a closing panel's column shrinks to 0 while the panel keeps its width and stays pinned
+   to the outer edge, so it slides out in step with the canvas widening (like MUI's persistent drawer). */
+@media (min-width: 961px) {
+  .main { overflow: hidden; transition: grid-template-columns .25s ease; }
+  .side.left { width: 240px; justify-self: end; }
+  .side.right { width: 300px; justify-self: start; }
+  .app.left-closed, .app.preview { --lw: 0px; }
+  .app.right-closed, .app.preview { --rw: 0px; }
+  .app.left-closed .side.left, .app.right-closed .side.right, .app.preview .side { visibility: hidden; transition: visibility 0s linear .25s; }
+}
+@media (min-width: 961px) and (prefers-reduced-motion: reduce) { .main, .side { transition: none !important; } }
+/* outline: collapsible */
+.outline-wrap summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px; border-radius: 4px; }
+.outline-wrap summary::-webkit-details-marker { display: none; }
+.outline-wrap summary::before { content: ''; width: 6px; height: 6px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s ease; margin: 0 2px 0 1px; }
+.outline-wrap[open] summary::before { transform: rotate(45deg); }
+.outline-wrap summary:hover { color: var(--fg); }
+.outline-wrap summary .count { margin-left: auto; font-family: var(--font-mono); font-weight: 400; letter-spacing: 0; }
+@media (prefers-reduced-motion: reduce) { .outline-wrap summary::before { transition: none; } }
+.label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.cat + .cat { margin-top: 14px; }
+.cat-name { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+.palette { display: grid; gap: 6px; }
+.pal-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 8px 10px;
+  cursor: grab; text-align: left; width: 100%; font-weight: 500;
+}
+.pal-item:hover { border-color: var(--accent); }
+.pal-item .pal-ico { display: grid; place-items: center; color: var(--muted); flex: none; }
+.pal-item:hover .pal-ico { color: var(--accent); }
+.pal-item .pal-ico svg { width: 18px; height: 18px; }
+.pal-item .pal-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pal-item .grip { color: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+.hint { font-size: 12px; color: var(--muted); line-height: 1.45; margin: 0; }
+
+.outline ul { list-style: none; margin: 0; padding: 0 0 0 12px; border-left: 1px solid var(--line); }
+.outline > ul { padding-left: 0; border-left: 0; }
+.outline li { margin: 2px 0; }
+.outline button { background: none; border: 0; padding: 3px 6px; border-radius: 4px; width: 100%; text-align: left; font-size: 13px; }
+.outline button:hover { background: var(--accent-soft); }
+.outline button.sel { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.outline .slot-name { font-family: var(--font-mono); font-size: 11px; color: var(--muted); padding: 2px 6px; }
+
+.stage { overflow: auto; padding: 24px; min-width: 0; }
+.frame { margin: 0 auto; max-width: 100%; transition: width .2s ease; background: var(--paper); color: var(--paper-fg); border: 1px solid var(--line); border-radius: 8px; min-height: 400px; }
+.frame.vp-desktop { width: 100%; }
+.frame.vp-tablet { width: 768px; }
+.frame.vp-mobile { width: 390px; }
+@media (prefers-reduced-motion: reduce) { .frame { transition: none; } }
+
+/* editor overlays */
+.dz { min-height: 48px; display: flex; flex-direction: column; }
+.dz .dz { border: 1px dashed var(--line); border-radius: 6px; padding: 4px; }
+.dz-empty { flex: 1; display: grid; place-items: center; color: var(--muted); font-size: 12px; padding: 16px; font-family: var(--font-mono); }
+.pk-item { position: relative; outline: 1px dashed transparent; outline-offset: -1px; cursor: pointer; }
+.pk-item:hover { outline-color: var(--accent); }
+.pk-item.is-sel { outline: 2px solid var(--accent); outline-offset: -2px; z-index: 1; }
+.pk-item::before {
+  content: attr(data-label); position: absolute; top: 0; left: 0; z-index: 2;
+  background: var(--accent); color: var(--paper); font: 500 10px/1 var(--font-mono);
+  padding: 4px 6px; border-radius: 0 0 4px 0; opacity: 0; pointer-events: none;
+}
+.pk-item:hover::before, .pk-item.is-sel::before { opacity: 1; }
+.pk-item.dragging { opacity: .35; }
+.pk-actions { position: absolute; top: 4px; right: 4px; z-index: 3; display: flex; gap: 2px; background: var(--accent); border-radius: 5px; padding: 2px; }
+.pk-actions button { border: 0; background: none; color: var(--paper); width: 26px; height: 24px; border-radius: 3px; display: grid; place-items: center; }
+.pk-actions button:hover { background: rgba(255,255,255,.18); }
+.pk-actions svg { width: 14px; height: 14px; }
+.pk-indicator { height: 3px; background: var(--accent); border-radius: 2px; margin: 2px 0; flex: none; }
+
+/* properties */
+.props-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.props-head h2 { font-size: 16px; margin: 0; }
+.props-head code { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.fields { display: grid; gap: 14px; }
+.fld label, .fld .flabel { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+.fld input[type=text], .fld input[type=number], .fld select, .fld textarea {
+  width: 100%; border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 7px 9px;
+}
+.fld textarea { min-height: 90px; resize: vertical; line-height: 1.45; }
+.seg { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg label { flex: 1; margin: 0; font-weight: 500; text-align: center; padding: 6px 4px; cursor: pointer; border-right: 1px solid var(--line); background: var(--paper); font-size: 12px; }
+.seg label:last-child { border-right: 0; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg input:checked + span { color: var(--accent); }
+.seg label:has(input:checked) { background: var(--accent-soft); }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
+.arr { display: grid; gap: 8px; }
+.arr-item { border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: grid; gap: 10px; background: var(--paper); }
+.arr-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; }
+.arr-head .grp button { border: 1px solid var(--line); background: var(--panel); border-radius: 4px; width: 26px; height: 24px; font-size: 12px; }
+.empty-props { color: var(--muted); font-size: 13px; line-height: 1.5; }
+/* rich text field (Quill core with our own toolbar, so it follows the theme tokens) */
+.rt { border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
+.rt:focus-within { border-color: var(--accent); }
+.rt-bar { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px; border-bottom: 1px solid var(--line); background: var(--panel); border-radius: 6px 6px 0 0; }
+.rt-bar button { border: 0; background: none; width: 28px; height: 26px; border-radius: 4px; display: grid; place-items: center; color: var(--muted); }
+.rt-bar button:hover { background: var(--accent-soft); color: var(--fg); }
+.rt-bar button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.rt-bar svg { width: 15px; height: 15px; }
+.rt-bar .sep { width: 1px; background: var(--line); margin: 3px 2px; }
+.rt-link { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; border-bottom: 1px solid var(--line); }
+.rt-link[hidden] { display: none; }
+.rt-link input { flex: 1 1 140px; min-width: 0; border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 5px 8px; }
+.rt-link .btn { padding: 4px 8px; font-size: 12px; }
+.rt-link .msg { flex-basis: 100%; }
+.rt .ql-container { position: relative; }
+.rt .ql-editor { min-height: 140px; max-height: 360px; overflow-y: auto; padding: 8px 10px; line-height: 1.5; outline: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rt .ql-editor p, .rt .ql-editor ol, .rt .ql-editor blockquote { margin: 0 0 8px; }
+.rt .ql-editor ol { padding-left: 0; counter-reset: rt; }
+.rt .ql-editor li { list-style: none; position: relative; padding-left: 1.5em; }
+.rt .ql-editor li > .ql-ui { position: absolute; left: 0; width: 1.2em; text-align: right; }
+.rt .ql-editor li[data-list="bullet"] > .ql-ui::before { content: '\2022'; }
+.rt .ql-editor li[data-list="ordered"] { counter-increment: rt; }
+.rt .ql-editor li[data-list="ordered"] > .ql-ui::before { content: counter(rt) '.'; }
+.rt .ql-editor blockquote { border-left: 3px solid var(--line); padding-left: 10px; color: var(--muted); }
+.rt .ql-editor a { color: var(--accent); }
+.rt .ql-editor.ql-blank::before { content: attr(data-placeholder); position: absolute; left: 10px; right: 10px; color: var(--muted); font-style: italic; pointer-events: none; }
+.rt .ql-clipboard { position: absolute; left: -10000px; height: 1px; overflow: hidden; }
+
+/* preview mode */
+.app.preview .panel-toggle { display: none; }
+
+/* modal */
+.modal { position: fixed; inset: 0; background: rgba(10,14,13,.5); display: grid; place-items: center; z-index: 50;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px; }
+.modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; width: min(720px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 12px; padding: 18px; min-width: 0; }
+.modal-card h2 { margin: 0; font-size: 17px; }
+.modal-card textarea { width: 100%; min-height: 320px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; border: 1px solid var(--line); border-radius: 6px; padding: 10px; background: var(--paper); resize: vertical; }
+.modal-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; }
+.msg { font-size: 12px; color: var(--muted); }
+.msg.err { color: var(--danger); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-size: 13px; z-index: 60; }
+
+/* ---------- rendered site blocks (what the CMS outputs) ---------- */
+.site { font-family: var(--font-ui); color: var(--paper-fg); line-height: 1.55; }
+.site h1, .site h2, .site h3 { text-wrap: balance; letter-spacing: -0.015em; line-height: 1.15; margin: 0; }
+.b-hero { padding: 56px 32px; background: var(--paper-tint); display: grid; gap: 14px; }
+.b-hero h1 { font-size: clamp(28px, 5vw, 44px); }
+.b-hero p { margin: 0; color: var(--paper-muted); font-size: 17px; max-width: 58ch; }
+.b-hero.center { text-align: center; justify-items: center; }
+.b-head { padding: 24px 32px 8px; }
+.b-head h1 { font-size: 34px; } .b-head h2 { font-size: 26px; } .b-head h3 { font-size: 20px; }
+.b-text { padding: 8px 32px; }
+.b-text p { margin: 0 0 12px; max-width: 68ch; color: var(--paper-fg); }
+.b-text ul, .b-text ol { margin: 0 0 12px; padding-left: 1.4em; max-width: 68ch; }
+.b-text li { margin: 2px 0; }
+.b-text blockquote { margin: 0 0 12px; padding-left: 14px; border-left: 3px solid var(--line); color: var(--paper-muted); max-width: 68ch; }
+.b-text a { color: var(--accent); }
+.site .center { text-align: center; } .site .center :is(p, ul, ol, blockquote) { margin-left: auto; margin-right: auto; }
+.site .right { text-align: right; } .site .right :is(p, ul, ol, blockquote) { margin-left: auto; }
+.b-btnrow { padding: 12px 32px; }
+.b-btn { display: inline-block; padding: 10px 18px; border-radius: 6px; font-weight: 600; text-decoration: none; background: var(--accent); color: var(--paper); border: 1px solid var(--accent); }
+.b-btn.secondary { background: transparent; color: var(--accent); }
+.b-cols { display: grid; gap: 16px; padding: 12px 32px; }
+.b-cols > * { min-width: 0; }
+.b-cols .b-head, .b-cols .b-text, .b-cols .b-btnrow, .b-cols .b-note, .b-cols .b-cards { padding-left: 0; padding-right: 0; }
+.b-cards { display: grid; gap: 14px; padding: 16px 32px; }
+.b-card { border: 1px solid var(--line); border-radius: 8px; padding: 16px; background: var(--paper); }
+.b-card h3 { font-size: 16px; margin-bottom: 6px; }
+.b-card p { margin: 0; color: var(--paper-muted); font-size: 14px; }
+.b-note { margin: 12px 32px; padding: 12px 16px; border-radius: 6px; font-size: 14px; display: grid; gap: 2px; }
+.b-note strong { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+.b-note.info { background: var(--info-bg); color: var(--info-fg); }
+.b-note.warning { background: var(--warn-bg); color: var(--warn-fg); }
+.b-img { margin: 0 auto; padding: 12px 32px; display: grid; gap: 8px; }
+.b-img.size-full { padding-left: 0; padding-right: 0; }
+.b-img.size-wide { max-width: 100%; }
+.b-img.size-medium { max-width: 640px; }
+.b-img.size-small { max-width: 360px; }
+.b-img.align-left { margin-left: 0; } .b-img.align-right { margin-right: 0; }
+.b-img-frame { overflow: hidden; border-radius: var(--img-radius, 8px); background: var(--paper-tint); max-width: 100%; }
+.b-img.size-full .b-img-frame { --img-radius: 0; }
+.b-img-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.b-img-frame.auto img { height: auto; }
+.b-img figcaption { font-size: 13px; color: var(--paper-muted); }
+.b-img.size-full figcaption { padding: 0 32px; }
+.b-img-empty { aspect-ratio: 16 / 9; display: grid; place-items: center; align-content: center; gap: 8px; color: var(--paper-muted); font-size: 13px; border: 1px dashed var(--line); border-radius: inherit; }
+.b-img-frame:not(.auto) .b-img-empty { aspect-ratio: auto; height: 100%; }
+.b-img-empty svg { width: 32px; height: 32px; }
+.b-card-img { display: block; width: calc(100% + 32px); max-width: none; margin: -16px -16px 12px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px 8px 0 0; }
+.imgfld { display: grid; gap: 8px; }
+.imgfld .thumb { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--paper); aspect-ratio: 16 / 9; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+.imgfld .thumb img { width: 100%; height: 100%; object-fit: contain; }
+.imgfld.over .thumb { border-color: var(--accent); background: var(--accent-soft); }
+.imgfld .vh { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.imgfld .grp label.btn { margin: 0; cursor: pointer; }
+.imgfld .msg { margin: 0; }
+.site-footer { padding: 24px 32px; color: var(--paper-muted); font-size: 12px; border-top: 1px solid var(--line); margin-top: 24px; }
+
+@media (max-width: 960px) {
+  .app { height: auto; display: block; }
+  .main { display: block; }
+  .stage { padding: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .side {
+    position: fixed; top: 0; bottom: 0; z-index: 40; width: min(320px, 88vw);
+    padding-top: max(16px, env(safe-area-inset-top, 0px)); padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 0 24px rgba(0,0,0,.18); visibility: hidden;
+    transition: transform .22s ease, visibility 0s linear .22s;
+  }
+  .side.left { left: 0; transform: translateX(-100%); padding-left: max(16px, env(safe-area-inset-left, 0px)); }
+  .side.right { right: 0; transform: translateX(100%); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .app.left-open .side.left, .app.right-open .side.right { transform: none; visibility: visible; transition: transform .22s ease; }
+  .app.left-open .scrim, .app.right-open .scrim { display: block; position: fixed; inset: 0; z-index: 39; background: rgba(10,14,13,.45); }
+  body:has(.app.left-open, .app.right-open) { overflow: hidden; }
+  .vp-group { display: none; }
+  .frame.vp-tablet, .frame.vp-mobile { width: 100%; }
+}
+@media (max-width: 960px) and (prefers-reduced-motion: reduce) { .side, .app.left-open .side.left, .app.right-open .side.right { transition: none; } }
+@media (max-width: 600px) {
+  .b-hero { padding: 36px 20px; } .b-head, .b-text, .b-btnrow, .b-cols, .b-cards, .site-footer { padding-left: 20px; padding-right: 20px; }
+  .b-note { margin-left: 20px; margin-right: 20px; }
+  .b-cols, .b-cards { grid-template-columns: 1fr !important; }
+  .btn .txt { display: none; }
+}
+</style>
+
+<div class="app" id="app">
+  <header class="topbar">
+    <button class="btn panel-toggle" id="leftToggle" data-panel="left" aria-controls="leftPanel" aria-expanded="true" aria-label="Blocks panel" title="Show or hide the blocks panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg><span class="txt">Blocks</span></button>
+    <div class="brand">Page Builder <small id="saveState">draft</small></div>
+    <div class="grp">
+      <button class="btn" id="undo" title="Undo (Ctrl+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg><span class="txt">Undo</span></button>
+      <button class="btn" id="redo" title="Redo (Ctrl+Shift+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg><span class="txt">Redo</span></button>
+    </div>
+    <div class="grp vp-group" id="vp">
+      <button class="btn on" data-vp="desktop">Desktop</button>
+      <button class="btn" data-vp="tablet">Tablet</button>
+      <button class="btn" data-vp="mobile">Mobile</button>
+    </div>
+    <div class="grp">
+      <button class="btn" id="previewBtn">Preview</button>
+      <button class="btn" id="importBtn">Import</button>
+      <button class="btn primary" id="publishBtn">Publish</button>
+    </div>
+    <button class="btn panel-toggle" id="rightToggle" data-panel="right" aria-controls="rightPanel" aria-expanded="true" aria-label="Properties panel" title="Show or hide the properties panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg><span class="txt">Properties</span></button>
+  </header>
+  <div class="main">
+    <aside class="side left" id="leftPanel" aria-label="Blocks">
+      <div class="side-head"><p class="label">Blocks</p><button class="icon-btn" data-close-panel="left" aria-label="Close blocks panel" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <section>
+        <div id="palette"></div>
+        <p class="hint" style="margin-top:10px">Drag a block onto the page, or tap it to add after the selected block.</p>
+      </section>
+      <details class="outline-wrap" id="outlineWrap" open>
+        <summary class="label">Outline <span class="count" id="outlineCount"></span></summary>
+        <nav class="outline" id="outline" aria-label="Page outline"></nav>
+      </details>
+    </aside>
+    <main class="stage"><div class="frame vp-desktop" id="frame"></div></main>
+    <aside class="side right" id="rightPanel" aria-label="Properties">
+      <div class="side-head"><p class="label">Properties</p><button class="icon-btn" data-close-panel="right" aria-label="Close properties panel" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <div id="props"></div>
+    </aside>
+  </div>
+  <div class="scrim" id="scrim"></div>
+</div>
+<div id="modalRoot"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script>
+/* =====================================================================
+   Core (framework-free). Data shape mirrors Puck:
+   { root: { props }, content: [ { type, props: { id, ...fields } } ] }
+   Slot fields store nested item arrays directly in props.
+   ===================================================================== */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Math.random().toString(36).slice(2, 9);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+function slotNames(config, type) {
+  const f = config.components[type]?.fields || {};
+  return Object.keys(f).filter(k => f[k].type === 'slot');
+}
+
+/* Render items in a zone; ctx.edit adds editor wrappers. */
+function renderZone(config, items, zoneKey, ctx) {
+  const html = (items || []).map(it => renderItem(config, it, ctx)).join('');
+  if (!ctx.edit) return html;
+  return `<div class="dz" data-zone="${esc(zoneKey)}">${html || '<div class="dz-empty">Drop blocks here</div>'}</div>`;
+}
+function renderItem(config, it, ctx) {
+  const comp = config.components[it.type];
+  if (!comp) return '';
+  const id = it.props.id;
+  const inner = comp.render(it.props, {
+    slot: name => renderZone(config, it.props[name] || [], `${id}/${name}`, ctx),
+    edit: !!ctx.edit
+  });
+  if (!ctx.edit) return inner;
+  const sel = ctx.selected === id;
+  return `<div class="pk-item${sel ? ' is-sel' : ''}" data-id="${esc(id)}" draggable="true" data-label="${esc(comp.label || it.type)}">${sel ? ACTIONS : ''}${inner}</div>`;
+}
+/* Public: render published data to an HTML string (usable server-side). */
+function renderPage(config, data, ctx = {}) {
+  const children = renderZone(config, data.content, 'root', ctx);
+  return config.root.render(data.root.props || {}, { children });
+}
+
+function findById(config, items, id, zoneKey = 'root') {
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (it.props.id === id) return { item: it, zone: items, index: i, zoneKey };
+    for (const s of slotNames(config, it.type)) {
+      const r = findById(config, it.props[s] || [], id, `${it.props.id}/${s}`);
+      if (r) return r;
+    }
+  }
+  return null;
+}
+function getZone(config, data, key) {
+  if (key === 'root') return data.content;
+  const [id, slot] = key.split('/');
+  const f = findById(config, data.content, id);
+  if (!f) return null;
+  return (f.item.props[slot] ||= []);
+}
+function reId(config, item) {
+  item.props.id = item.type + '-' + uid();
+  for (const s of slotNames(config, item.type)) (item.props[s] || []).forEach(c => reId(config, c));
+  return item;
+}
+
+/* =====================================================================
+   Component config — edit this to add your own blocks.
+   ===================================================================== */
+const ICON = {
+  up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 15 6-6 6 6"/></svg>',
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>',
+  del: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>'
+};
+const ACTIONS = `<div class="pk-actions">
+  <button data-act="up" title="Move up" aria-label="Move up">${ICON.up}</button>
+  <button data-act="down" title="Move down" aria-label="Move down">${ICON.down}</button>
+  <button data-act="dup" title="Duplicate" aria-label="Duplicate">${ICON.copy}</button>
+  <button data-act="del" title="Delete" aria-label="Delete">${ICON.del}</button></div>`;
+/* Palette icon for components without their own `icon` (inner SVG markup, 24×24 viewBox, stroked) */
+const BLOCK_ICON = '<rect x="4" y="4" width="16" height="16" rx="2"/>';
+const ALIGN = { type: 'radio', label: 'Alignment', options: [{label:'Left',value:'left'},{label:'Center',value:'center'},{label:'Right',value:'right'}] };
+/* Only allow safe link/image schemes in rendered output */
+const safeUrl = (u, img) => {
+  const s = String(u || '').replace(/[\x00-\x20]/g, '');
+  if (img && /^data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,]/i.test(s)) return s;
+  const scheme = /^[a-z][a-z0-9+.-]*:/i.exec(s);
+  if (!scheme || /^https?:$/i.test(scheme[0]) || (!img && /^mailto:$/i.test(scheme[0]))) return s; // relative paths, http(s), mailto
+  return img ? '' : '#';
+};
+const PIC_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>';
+
+/* Turn an uploaded file into an image URL.
+   Default: downscale and embed as a data URI.
+   In production, replace with an upload to your media API that returns a URL. */
+const uploadImage = async function (file) {
+  if (!file || !/^image\//.test(file.type)) throw new Error('That file is not a picture');
+  const raw = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(new Error('Could not read the file')); r.readAsDataURL(file); });
+  if (/svg|gif/.test(file.type) || file.size < 300 * 1024) return raw;
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Could not open the picture')); i.src = raw; });
+  const max = 1600, k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return file.type === 'image/png' ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.85);
+};
+const paras = t => String(t || '').split(/\n{2,}/).map(p => `<p>${esc(p).replace(/\n/g,'<br>')}</p>`).join('');
+
+/* Rich text is stored as a Quill Delta ({ ops: [...] }), not HTML, and turned into HTML here.
+   Every character still goes through esc() and every link through safeUrl(), and formats
+   outside RICH_FORMATS are dropped, so imported JSON cannot inject markup. A plain string
+   (older pages) renders as paragraphs. */
+const RICH_FORMATS = ['bold', 'italic', 'underline', 'strike', 'link', 'list', 'blockquote'];
+const RICH_INLINE = [['strike', 's'], ['underline', 'u'], ['italic', 'em'], ['bold', 'strong']];
+function renderRich(value) {
+  if (typeof value === 'string') return paras(value);
+  const ops = Array.isArray(value?.ops) ? value.ops : [];
+  const lines = []; let cur = '';
+  for (const op of ops) {
+    if (!op || typeof op.insert !== 'string') continue; // embeds are not allowed
+    const a = op.attributes && typeof op.attributes === 'object' ? op.attributes : {};
+    op.insert.split('\n').forEach((part, n) => {
+      if (n > 0) { lines.push({ html: cur, a }); cur = ''; } // a newline carries its line's format
+      if (!part) return;
+      let h = esc(part);
+      for (const [k, tag] of RICH_INLINE) if (a[k]) h = `<${tag}>${h}</${tag}>`;
+      if (a.link) h = `<a href="${esc(safeUrl(a.link) || '#')}">${h}</a>`;
+      cur += h;
+    });
+  }
+  if (cur) lines.push({ html: cur, a: {} });
+  let out = '', open = '';
+  for (const { html, a } of lines) {
+    const list = a.list === 'ordered' ? 'ol' : a.list === 'bullet' ? 'ul' : '';
+    const wrap = list || (a.blockquote ? 'blockquote' : '');
+    if (wrap !== open) { if (open) out += `</${open}>`; if (wrap) out += `<${wrap}>`; open = wrap; }
+    if (!html) continue; // blank lines only add space in the editor
+    out += list ? `<li>${html}</li>` : `<p>${html}</p>`;
+  }
+  if (open) out += `</${open}>`;
+  return out;
+}
+/* Delta or plain string → Delta (each paragraph becomes one line) */
+const toDelta = v => Array.isArray(v?.ops) ? v : { ops: [{ insert: String(v || '').split(/\n{2,}/).join('\n').replace(/\n*$/, '\n') }] };
+/* Delta → plain text with blank lines between paragraphs (fallback textarea) */
+const richText = v => typeof v === 'string' ? v : toDelta(v).ops.map(o => typeof o?.insert === 'string' ? o.insert : '').join('').trim().replace(/\n+/g, '\n\n');
+
+const config = {
+  root: {
+    fields: {
+      title: { type: 'text', label: 'Page title' },
+      footer: { type: 'text', label: 'Footer text' }
+    },
+    defaultProps: { title: 'Untitled page', footer: '' },
+    render: (p, { children }) => `<div class="site">${children}${p.footer ? `<footer class="site-footer">${esc(p.footer)}</footer>` : ''}</div>`
+  },
+  upload: uploadImage,
+  categories: {
+    Text: ['Heading', 'Text', 'Notice'],
+    Media: ['Image'],
+    Actions: ['Button'],
+    Layout: ['Hero', 'Columns', 'CardGrid', 'Spacer']
+  },
+  components: {
+    Image: {
+      label: 'Picture',
+      icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',
+      fields: {
+        src: { type: 'image', label: 'Picture' },
+        alt: { type: 'text', label: 'Alt text (describe the picture)' },
+        caption: { type: 'text', label: 'Caption' },
+        size: { type: 'select', label: 'Size', options: [{label:'Full bleed',value:'full'},{label:'Wide',value:'wide'},{label:'Medium',value:'medium'},{label:'Small',value:'small'}] },
+        ratio: { type: 'select', label: 'Shape', options: [{label:'Original',value:'auto'},{label:'Landscape 16:9',value:'16 / 9'},{label:'Classic 4:3',value:'4 / 3'},{label:'Square 1:1',value:'1 / 1'},{label:'Portrait 3:4',value:'3 / 4'}] },
+        align: ALIGN
+      },
+      defaultProps: { src: '', alt: '', caption: '', size: 'wide', ratio: 'auto', align: 'center' },
+      render: (p, { edit }) => {
+        const src = safeUrl(p.src, true);
+        const auto = !p.ratio || p.ratio === 'auto';
+        const style = auto ? '' : ` style="aspect-ratio:${esc(p.ratio)}"`;
+        const body = src
+          ? `<img src="${esc(src)}" alt="${esc(p.alt)}" loading="lazy">`
+          : `<div class="b-img-empty">${PIC_ICON}<span>${edit ? 'Select this block, then upload a picture' : ''}</span></div>`;
+        return `<figure class="b-img size-${esc(p.size)} align-${esc(p.align)}"><div class="b-img-frame${auto ? ' auto' : ''}"${style}>${body}</div>${p.caption ? `<figcaption>${esc(p.caption)}</figcaption>` : ''}</figure>`;
+      }
+    },
+    Hero: {
+      label: 'Hero',
+      icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h9M7 12.5h6"/><rect x="7" y="15" width="5" height="2" rx="1"/>',
+      fields: {
+        title: { type: 'text', label: 'Title' },
+        subtitle: { type: 'textarea', label: 'Subtitle' },
+        cta: { type: 'text', label: 'Button label' },
+        href: { type: 'text', label: 'Button link' },
+        align: { ...ALIGN, options: ALIGN.options.slice(0, 2) }
+      },
+      defaultProps: { title: 'Page headline', subtitle: 'A short supporting line.', cta: 'Get started', href: '#', align: 'left' },
+      render: p => `<section class="b-hero ${p.align === 'center' ? 'center' : ''}"><h1>${esc(p.title)}</h1>${p.subtitle ? `<p>${esc(p.subtitle)}</p>` : ''}${p.cta ? `<div><a class="b-btn" href="${esc(safeUrl(p.href) || '#')}">${esc(p.cta)}</a></div>` : ''}</section>`
+    },
+    Heading: {
+      label: 'Heading',
+      icon: '<path d="M6 4v16M18 4v16M6 12h12"/>',
+      fields: {
+        text: { type: 'text', label: 'Text' },
+        level: { type: 'select', label: 'Level', options: [{label:'H1',value:'h1'},{label:'H2',value:'h2'},{label:'H3',value:'h3'}] },
+        align: ALIGN
+      },
+      defaultProps: { text: 'Section heading', level: 'h2', align: 'left' },
+      render: p => { const L = ['h1','h2','h3'].includes(p.level) ? p.level : 'h2'; return `<div class="b-head ${esc(p.align)}"><${L}>${esc(p.text)}</${L}></div>`; }
+    },
+    Text: {
+      label: 'Text',
+      icon: '<path d="M4 6h16M4 10h16M4 14h16M4 18h10"/>',
+      fields: { text: { type: 'richtext', label: 'Text' }, align: ALIGN },
+      defaultProps: { text: { ops: [{ insert: 'Write your paragraph here. Use the toolbar for bold, lists, quotes and links.\n' }] }, align: 'left' },
+      render: p => `<div class="b-text ${esc(p.align)}">${renderRich(p.text)}</div>`
+    },
+    Notice: {
+      label: 'Notice',
+      icon: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+      fields: {
+        tone: { type: 'radio', label: 'Tone', options: [{label:'Info',value:'info'},{label:'Warning',value:'warning'}] },
+        title: { type: 'text', label: 'Title' },
+        text: { type: 'textarea', label: 'Message' }
+      },
+      defaultProps: { tone: 'info', title: 'Note', text: 'Important information for readers.' },
+      render: p => `<div class="b-note ${p.tone === 'warning' ? 'warning' : 'info'}" role="note"><strong>${esc(p.title)}</strong><span>${esc(p.text)}</span></div>`
+    },
+    Button: {
+      label: 'Button',
+      icon: '<rect x="3" y="8" width="18" height="8" rx="4"/><path d="M8 12h8"/>',
+      fields: {
+        label: { type: 'text', label: 'Label' },
+        href: { type: 'text', label: 'Link' },
+        variant: { type: 'radio', label: 'Style', options: [{label:'Primary',value:'primary'},{label:'Secondary',value:'secondary'}] },
+        align: ALIGN
+      },
+      defaultProps: { label: 'Learn more', href: '#', variant: 'primary', align: 'left' },
+      render: p => `<div class="b-btnrow ${esc(p.align)}"><a class="b-btn ${p.variant === 'secondary' ? 'secondary' : ''}" href="${esc(safeUrl(p.href) || '#')}">${esc(p.label)}</a></div>`
+    },
+    Columns: {
+      label: 'Columns',
+      icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/>',
+      fields: {
+        ratio: { type: 'select', label: 'Column split', options: [{label:'50 / 50',value:'1fr 1fr'},{label:'66 / 33',value:'2fr 1fr'},{label:'33 / 66',value:'1fr 2fr'}] },
+        left: { type: 'slot' },
+        right: { type: 'slot' }
+      },
+      defaultProps: { ratio: '1fr 1fr', left: [], right: [] },
+      render: (p, { slot }) => `<div class="b-cols" style="grid-template-columns:${esc(p.ratio)}"><div>${slot('left')}</div><div>${slot('right')}</div></div>`
+    },
+    CardGrid: {
+      label: 'Card grid',
+      icon: '<rect x="3" y="4" width="7.5" height="7" rx="1.5"/><rect x="13.5" y="4" width="7.5" height="7" rx="1.5"/><rect x="3" y="13" width="7.5" height="7" rx="1.5"/><rect x="13.5" y="13" width="7.5" height="7" rx="1.5"/>',
+      fields: {
+        columns: { type: 'number', label: 'Columns', min: 1, max: 4 },
+        items: { type: 'array', label: 'Cards', defaultItemProps: { title: 'Card title', body: 'Card description.', image: '', alt: '' },
+          arrayFields: { title: { type: 'text', label: 'Title' }, body: { type: 'textarea', label: 'Body' }, image: { type: 'image', label: 'Picture (optional)' }, alt: { type: 'text', label: 'Picture alt text' } } }
+      },
+      defaultProps: { columns: 3, items: [{ title: 'First', body: 'Description.' }, { title: 'Second', body: 'Description.' }, { title: 'Third', body: 'Description.' }] },
+      render: p => `<div class="b-cards" style="grid-template-columns:repeat(${Math.min(4, Math.max(1, +p.columns || 1))},minmax(0,1fr))">${(p.items || []).map(c => `<article class="b-card">${safeUrl(c.image, true) ? `<img class="b-card-img" src="${esc(safeUrl(c.image, true))}" alt="${esc(c.alt)}" loading="lazy">` : ''}<h3>${esc(c.title)}</h3><p>${esc(c.body)}</p></article>`).join('')}</div>`
+    },
+    Spacer: {
+      label: 'Spacer',
+      icon: '<path d="M4 4h16M4 20h16M12 8v8M9.5 10.5 12 8l2.5 2.5M9.5 13.5 12 16l2.5-2.5"/>',
+      fields: { size: { type: 'number', label: 'Height (px)', min: 0, max: 240 } },
+      defaultProps: { size: 32 },
+      render: p => `<div aria-hidden="true" style="height:${Math.min(240, Math.max(0, +p.size || 0))}px"></div>`
+    }
+  }
+};
+
+/* Example page so the editor opens in a working state */
+const SAMPLE_IMG = 'data:image/svg+xml,' + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'><rect width='1200' height='600' fill='#cfdcf7'/><circle cx='930' cy='170' r='80' fill='#f6d27a'/><path d='M0 380 Q300 300 600 380 T1200 380 V600 H0Z' fill='#7d9cf2'/><path d='M0 450 Q300 380 600 450 T1200 450 V600 H0Z' fill='#2f5bd3'/><path d='M0 520 Q300 470 600 520 T1200 520 V600 H0Z' fill='#1d3a8f'/></svg>");
+const SAMPLE = {
+  root: { props: { title: 'Member services', footer: 'Example content — Harbourline Mutual (fictional)' } },
+  content: [
+    { type: 'Hero', props: { id: 'Hero-a1', title: 'Member services, in one place', subtitle: 'Update your details, file a claim, or reach our support team without waiting on hold.', cta: 'Sign in', href: '#', align: 'left' } },
+    { type: 'Image', props: { id: 'Image-a0', src: SAMPLE_IMG, alt: 'Illustration of waves under a morning sun', caption: 'Example picture — upload your own from the properties panel.', size: 'wide', ratio: '16 / 9', align: 'center' } },
+    { type: 'Notice', props: { id: 'Notice-a2', tone: 'warning', title: 'Scheduled maintenance', text: 'Online services will be unavailable Saturday 02:00–04:00.' } },
+    { type: 'Heading', props: { id: 'Heading-a3', text: 'What you can do online', level: 'h2', align: 'left' } },
+    { type: 'CardGrid', props: { id: 'CardGrid-a4', columns: 3, items: [
+      { title: 'File a claim', body: 'Start a claim and upload supporting documents.' },
+      { title: 'Update details', body: 'Change your address, phone number or beneficiaries.' },
+      { title: 'Download statements', body: 'Access statements from the last seven years.' } ] } },
+    { type: 'Columns', props: { id: 'Columns-a5', ratio: '2fr 1fr',
+      left: [
+        { type: 'Heading', props: { id: 'Heading-b1', text: 'Need help?', level: 'h3', align: 'left' } },
+        { type: 'Text', props: { id: 'Text-b2', text: { ops: [
+          { insert: 'Our support team replies within ' }, { insert: 'one working day', attributes: { bold: true } },
+          { insert: '. For urgent matters, call the hotline during office hours.\nHave ready:\nYour member number' }, { insert: '\n', attributes: { list: 'bullet' } },
+          { insert: 'A short description of the problem' }, { insert: '\n', attributes: { list: 'bullet' } } ] }, align: 'left' } } ],
+      right: [
+        { type: 'Button', props: { id: 'Button-b3', label: 'Contact support', href: '#', variant: 'primary', align: 'left' } } ] } }
+  ]
+};
+
+/* =====================================================================
+   Editor
+   ===================================================================== */
+const STORE_KEY = 'vpb-draft-v1';
+const UI_KEY = 'vpb-ui-v1';
+const $ = s => document.querySelector(s);
+const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+
+const Editor = {
+  data: null, history: [], hIndex: -1, selected: null, preview: false, viewport: 'desktop',
+  drag: null, drop: null, lastCoalesce: null, lastTime: 0,
+
+  init() {
+    let start = SAMPLE;
+    try { const s = localStorage.getItem(STORE_KEY); if (s) { const d = JSON.parse(s); if (d && Array.isArray(d.content)) start = d; } } catch (e) {}
+    this.data = clone(start);
+    this.history = [clone(this.data)]; this.hIndex = 0;
+    this.indicator = el('div', 'pk-indicator');
+    this.initPanels();
+    this.renderPalette(); this.bind(); this.render(true);
+  },
+
+  /* ---- side panels: collapsible columns on wide screens, drawers at 960px and below ---- */
+  narrow: matchMedia('(max-width: 960px)'),
+  ui: { leftClosed: false, rightClosed: false, outlineClosed: false }, // remembered per viewer (wide screens)
+  initPanels() {
+    try { Object.assign(this.ui, JSON.parse(localStorage.getItem(UI_KEY)) || {}); } catch (e) {}
+    $('#app').classList.toggle('left-closed', !!this.ui.leftClosed);
+    $('#app').classList.toggle('right-closed', !!this.ui.rightClosed);
+    $('#outlineWrap').open = !this.ui.outlineClosed;
+    $('#outlineWrap').addEventListener('toggle', () => { this.ui.outlineClosed = !$('#outlineWrap').open; this.saveUi(); });
+    document.querySelectorAll('.panel-toggle').forEach(b => b.addEventListener('click', () => this.setPanel(b.dataset.panel, !this.panelOpen(b.dataset.panel))));
+    document.querySelectorAll('[data-close-panel]').forEach(b => b.addEventListener('click', () => this.setPanel(b.dataset.closePanel, false)));
+    $('#scrim').addEventListener('click', () => this.closeDrawers());
+    this.narrow.addEventListener('change', () => { $('#app').classList.remove('left-open', 'right-open'); this.syncToggles(); });
+    this.syncToggles();
+  },
+  saveUi() { try { localStorage.setItem(UI_KEY, JSON.stringify(this.ui)); } catch (e) {} },
+  panelOpen(side) {
+    const a = $('#app');
+    return this.narrow.matches ? a.classList.contains(`${side}-open`) : !a.classList.contains(`${side}-closed`);
+  },
+  setPanel(side, open) {
+    const a = $('#app'), panel = $(`#${side}Panel`);
+    const hadFocus = panel.contains(document.activeElement);
+    if (this.narrow.matches) {
+      a.classList.remove('left-open', 'right-open'); // one drawer at a time
+      if (open) a.classList.add(`${side}-open`);
+    } else {
+      a.classList.toggle(`${side}-closed`, !open);
+      this.ui[`${side}Closed`] = !open; this.saveUi();
+    }
+    this.syncToggles();
+    if (open && this.narrow.matches) panel.querySelector('[data-close-panel]').focus();
+    else if (!open && hadFocus) $(`#${side}Toggle`).focus(); // don't strand focus in a hidden panel
+  },
+  closeDrawers() { if (!this.narrow.matches) return false; const open = ['left', 'right'].find(s => this.panelOpen(s)); if (open) this.setPanel(open, false); return !!open; },
+  syncToggles() { for (const s of ['left', 'right']) $(`#${s}Toggle`).setAttribute('aria-expanded', String(this.panelOpen(s))); },
+
+  /* ---- state ---- */
+  commit(next, { coalesce = null, keepPanel = false } = {}) {
+    const now = Date.now();
+    if (coalesce && coalesce === this.lastCoalesce && now - this.lastTime < 1200) {
+      this.history[this.hIndex] = clone(next);
+    } else {
+      this.history = this.history.slice(0, this.hIndex + 1);
+      this.history.push(clone(next)); this.hIndex++;
+      if (this.history.length > 100) { this.history.shift(); this.hIndex--; }
+    }
+    this.lastCoalesce = coalesce; this.lastTime = now;
+    this.data = next; this.save(); this.render(!keepPanel);
+  },
+  mutate(fn, opts) { const next = clone(this.data); const r = fn(next); if (r === false) return; this.commit(next, opts); },
+  undo() { if (this.hIndex > 0) { this.hIndex--; this.restore(); } },
+  redo() { if (this.hIndex < this.history.length - 1) { this.hIndex++; this.restore(); } },
+  restore() {
+    this.data = clone(this.history[this.hIndex]); this.lastCoalesce = null;
+    if (this.selected && !findById(config, this.data.content, this.selected)) this.selected = null;
+    this.save(); this.render(true);
+  },
+  save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(this.data)); $('#saveState').textContent = 'draft saved'; }
+    catch (e) { $('#saveState').textContent = 'too large to autosave — use Publish to keep a copy'; }
+  },
+
+  /* ---- actions (Puck: insert / move / remove / duplicate / setProps) ---- */
+  insert(type, zoneKey, index, extra = {}) {
+    const comp = config.components[type]; const id = `${type}-${uid()}`;
+    this.mutate(d => {
+      const z = getZone(config, d, zoneKey); if (!z) return false;
+      z.splice(Math.min(index, z.length), 0, { type, props: { ...clone(comp.defaultProps), ...extra, id } });
+    });
+    this.select(id, true);
+  },
+  move(id, zoneKey, index) {
+    this.mutate(d => {
+      const src = findById(config, d.content, id); if (!src) return false;
+      const target = getZone(config, d, zoneKey); if (!target) return false;
+      if (src.zone === target && src.index < index) index--;
+      if (src.zone === target && src.index === index) return false;
+      const [item] = src.zone.splice(src.index, 1);
+      target.splice(index, 0, item);
+    });
+  },
+  moveBy(id, delta) {
+    this.mutate(d => {
+      const f = findById(config, d.content, id); if (!f) return false;
+      const j = f.index + delta; if (j < 0 || j >= f.zone.length) return false;
+      [f.zone[f.index], f.zone[j]] = [f.zone[j], f.zone[f.index]];
+    });
+  },
+  remove(id) {
+    this.mutate(d => { const f = findById(config, d.content, id); if (!f) return false; f.zone.splice(f.index, 1); });
+    if (this.selected === id) this.select(null);
+  },
+  duplicate(id) {
+    let newId;
+    this.mutate(d => { const f = findById(config, d.content, id); if (!f) return false;
+      const c = reId(config, clone(f.item)); newId = c.props.id; f.zone.splice(f.index + 1, 0, c); });
+    if (newId) this.select(newId);
+  },
+  setProp(id, key, value) {
+    this.mutate(d => {
+      if (id === 'root') { d.root.props = { ...d.root.props, [key]: value }; return; }
+      const f = findById(config, d.content, id); if (!f) return false; f.item.props[key] = value;
+    }, { coalesce: `${id}:${key}`, keepPanel: true });
+  },
+  select(id, scroll) {
+    this.selected = id; this.render(true);
+    if (scroll && id) requestAnimationFrame(() => document.querySelector(`.pk-item[data-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+  },
+
+  /* ---- rendering ---- */
+  render(panel) {
+    $('#frame').innerHTML = renderPage(config, this.data, { edit: !this.preview, selected: this.selected });
+    this.renderOutline();
+    if (panel) this.renderPanel();
+    $('#undo').disabled = this.hIndex <= 0;
+    $('#redo').disabled = this.hIndex >= this.history.length - 1;
+  },
+  renderPalette() {
+    const wrap = $('#palette');
+    for (const [cat, types] of Object.entries(config.categories)) {
+      const sec = el('div', 'cat'); sec.append(el('p', 'cat-name', esc(cat)));
+      const list = el('div', 'palette');
+      for (const t of types) {
+        const c = config.components[t];
+        const b = el('button', 'pal-item', `<span class="pal-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${c.icon || BLOCK_ICON}</svg></span><span class="pal-name">${esc(c.label || t)}</span><span class="grip">⋮⋮</span>`);
+        b.draggable = true; b.dataset.type = t; b.type = 'button';
+        list.append(b);
+      }
+      sec.append(list); wrap.append(sec);
+    }
+  },
+  renderOutline() {
+    const build = (items) => {
+      const ul = el('ul');
+      for (const it of items) {
+        const li = el('li');
+        const b = el('button', it.props.id === this.selected ? 'sel' : '', esc(config.components[it.type]?.label || it.type));
+        b.dataset.sel = it.props.id; li.append(b);
+        for (const s of slotNames(config, it.type)) {
+          const sub = el('div'); sub.append(el('div', 'slot-name', esc(s)));
+          sub.append(build(it.props[s] || [])); li.append(sub);
+        }
+        ul.append(li);
+      }
+      return ul;
+    };
+    const o = $('#outline'); o.innerHTML = ''; o.append(build(this.data.content));
+    const count = items => items.reduce((n, it) => n + 1 + slotNames(config, it.type).reduce((m, s) => m + count(it.props[s] || []), 0), 0);
+    const n = count(this.data.content); $('#outlineCount').textContent = n; $('#outlineCount').title = `${n} block${n === 1 ? '' : 's'}`;
+  },
+  renderPanel() {
+    const p = $('#props'); p.innerHTML = '';
+    let target, fields, id, title;
+    if (this.selected) {
+      const f = findById(config, this.data.content, this.selected);
+      if (!f) { this.selected = null; return this.renderPanel(); }
+      const comp = config.components[f.item.type];
+      target = f.item.props; fields = comp.fields; id = this.selected; title = comp.label || f.item.type;
+    } else {
+      target = this.data.root.props || {}; fields = config.root.fields; id = 'root'; title = 'Page';
+    }
+    const head = el('div', 'props-head', `<h2>${esc(title)}</h2><code>${esc(id)}</code>`);
+    p.append(head);
+    const box = el('div', 'fields');
+    for (const [k, f] of Object.entries(fields)) {
+      const n = buildField(`${id}-${k}`, f, target[k], v => this.setProp(id, k, v), () => this.renderPanel());
+      if (n) box.append(n);
+    }
+    if (!box.children.length) box.append(el('p', 'empty-props', 'This block has no settings. Drop blocks into its areas on the page.'));
+    p.append(box);
+    if (this.selected) {
+      const row = el('div', 'grp');
+      row.innerHTML = `<button class="btn" data-pact="dup">${ICON.copy}Duplicate</button><button class="btn" data-pact="del">${ICON.del}Delete</button><button class="btn" data-pact="page">Page settings</button>`;
+      row.style.flexWrap = 'wrap';
+      p.append(row);
+    } else {
+      p.append(el('p', 'empty-props', 'Select a block on the page to edit it.'));
+    }
+  },
+
+  /* ---- events ---- */
+  bind() {
+    const frame = $('#frame');
+    frame.addEventListener('click', e => {
+      if (this.preview) { if (e.target.closest('a')) e.preventDefault(); return; }
+      e.preventDefault();
+      const act = e.target.closest('[data-act]');
+      const item = e.target.closest('.pk-item');
+      if (act && item) {
+        const id = item.dataset.id, a = act.dataset.act;
+        if (a === 'up') this.moveBy(id, -1); else if (a === 'down') this.moveBy(id, 1);
+        else if (a === 'dup') this.duplicate(id); else if (a === 'del') this.remove(id);
+        return;
+      }
+      this.select(item ? item.dataset.id : null);
+      if (item && this.narrow.matches) this.setPanel('right', true); // small screens: tapping a block opens its settings
+    });
+    $('#outline').addEventListener('click', e => { const b = e.target.closest('[data-sel]'); if (!b) return; this.closeDrawers(); this.select(b.dataset.sel, true); });
+    $('#props').addEventListener('click', e => {
+      const b = e.target.closest('[data-pact]'); if (!b) return;
+      const a = b.dataset.pact;
+      if (a === 'dup') this.duplicate(this.selected); else if (a === 'del') this.remove(this.selected); else this.select(null);
+    });
+
+    /* palette: tap to add, drag to place */
+    const pal = $('#palette');
+    pal.addEventListener('click', e => {
+      const b = e.target.closest('[data-type]'); if (!b) return;
+      const f = this.selected && findById(config, this.data.content, this.selected);
+      if (f) this.insert(b.dataset.type, f.zoneKey, f.index + 1);
+      else this.insert(b.dataset.type, 'root', this.data.content.length);
+      this.closeDrawers(); // small screens: show the page with the new block
+    });
+    pal.addEventListener('dragstart', e => {
+      const b = e.target.closest('[data-type]'); if (!b) return;
+      this.drag = { kind: 'new', type: b.dataset.type };
+      e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer.setData('text/plain', b.dataset.type);
+    });
+
+    frame.addEventListener('dragstart', e => {
+      const item = e.target.closest('.pk-item'); if (!item || this.preview) return;
+      e.stopPropagation();
+      this.drag = { kind: 'move', id: item.dataset.id };
+      e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', item.dataset.id);
+      setTimeout(() => item.classList.add('dragging'));
+    });
+    frame.addEventListener('dragover', e => {
+      if (!this.drag && !this.preview && [...(e.dataTransfer?.types || [])].includes('Files')) this.drag = { kind: 'file' };
+      if (!this.drag) return;
+      const zone = e.target.closest('.dz'); if (!zone) return;
+      if (this.drag.kind === 'move' && zone.closest(`.pk-item[data-id="${CSS.escape(this.drag.id)}"]`)) { this.clearIndicator(); return; }
+      e.preventDefault(); e.stopPropagation();
+      e.dataTransfer.dropEffect = this.drag.kind === 'move' ? 'move' : 'copy';
+      const kids = [...zone.children].filter(c => c.classList.contains('pk-item'));
+      let idx = kids.findIndex(c => { const r = c.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
+      if (idx === -1) idx = kids.length;
+      if (kids[idx]) zone.insertBefore(this.indicator, kids[idx]); else zone.append(this.indicator);
+      this.drop = { zoneKey: zone.dataset.zone, index: idx };
+    });
+    frame.addEventListener('drop', e => {
+      e.preventDefault();
+      const d = this.drag, t = this.drop; this.endDrag();
+      if (!d || !t) return;
+      if (d.kind === 'file') {
+        const files = [...(e.dataTransfer.files || [])].filter(f => /^image\//.test(f.type));
+        if (!files.length) { showToast('Only picture files can be dropped here'); return; }
+        (async () => {
+          for (const [n, f] of files.entries()) {
+            try { const src = await config.upload(f); this.insert('Image', t.zoneKey, t.index + n, { src, alt: f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ') }); }
+            catch (err) { showToast(err.message); }
+          }
+        })();
+        return;
+      }
+      if (d.kind === 'new') this.insert(d.type, t.zoneKey, t.index); else this.move(d.id, t.zoneKey, t.index);
+    });
+    frame.addEventListener('dragleave', e => { if (!frame.contains(e.relatedTarget)) { this.clearIndicator(); if (this.drag?.kind === 'file') this.drag = null; } });
+    document.addEventListener('dragend', () => this.endDrag());
+    /* stop the browser opening a dropped file when it misses a drop area */
+    ['dragover', 'drop'].forEach(t => document.addEventListener(t, e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) e.preventDefault(); }));
+
+    /* toolbar */
+    $('#undo').onclick = () => this.undo();
+    $('#redo').onclick = () => this.redo();
+    $('#vp').addEventListener('click', e => {
+      const b = e.target.closest('[data-vp]'); if (!b) return;
+      this.viewport = b.dataset.vp;
+      $('#frame').className = `frame vp-${this.viewport}`;
+      $('#vp').querySelectorAll('[data-vp]').forEach(x => x.classList.toggle('on', x === b));
+    });
+    $('#previewBtn').onclick = () => {
+      this.preview = !this.preview;
+      if (this.preview) this.closeDrawers();
+      $('#app').classList.toggle('preview', this.preview);
+      $('#previewBtn').classList.toggle('on', this.preview);
+      $('#previewBtn').textContent = this.preview ? 'Edit' : 'Preview';
+      this.render(false);
+    };
+    $('#publishBtn').onclick = () => openPublish(this.data);
+    $('#importBtn').onclick = () => openImport();
+
+    document.addEventListener('keydown', e => {
+      const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) || !!document.activeElement?.isContentEditable;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); e.shiftKey ? this.redo() : this.undo(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y' && !typing) { e.preventDefault(); this.redo(); }
+      else if ((e.key === 'Delete' || e.key === 'Backspace') && this.selected && !typing && !this.preview) { e.preventDefault(); this.remove(this.selected); }
+      else if (e.key === 'Escape') { if ($('#modalRoot').children.length) closeModal(); else this.closeDrawers(); }
+    });
+  },
+  clearIndicator() { this.indicator.remove(); this.drop = null; },
+  endDrag() { this.clearIndicator(); this.drag = null; document.querySelectorAll('.dragging').forEach(n => n.classList.remove('dragging')); }
+};
+
+/* =====================================================================
+   Field controls (text, textarea, number, select, radio, array; slot is skipped)
+   ===================================================================== */
+function buildField(key, f, value, onChange, rebuild) {
+  if (f.type === 'slot') return null;
+  const wrap = el('div', 'fld');
+  const id = 'f-' + key.replace(/[^a-z0-9_-]/gi, '_');
+  const lbl = f.label || key;
+  switch (f.type) {
+    case 'text': case 'number': {
+      wrap.innerHTML = `<label for="${id}">${esc(lbl)}</label>`;
+      const i = el('input'); i.id = id; i.type = f.type === 'number' ? 'number' : 'text';
+      if (f.min != null) i.min = f.min; if (f.max != null) i.max = f.max;
+      i.value = value ?? '';
+      i.addEventListener('input', () => onChange(f.type === 'number' ? (i.value === '' ? '' : Number(i.value)) : i.value));
+      wrap.append(i); break;
+    }
+    case 'textarea': {
+      wrap.innerHTML = `<label for="${id}">${esc(lbl)}</label>`;
+      const t = el('textarea'); t.id = id; t.value = value ?? '';
+      t.addEventListener('input', () => onChange(t.value)); wrap.append(t); break;
+    }
+    case 'richtext': {
+      if (typeof Quill === 'undefined') { // editor script did not load: fall back to plain paragraphs
+        wrap.innerHTML = `<label for="${id}">${esc(lbl)}</label>`;
+        const t = el('textarea'); t.id = id; t.value = richText(value);
+        t.addEventListener('input', () => onChange(t.value)); wrap.append(t); break;
+      }
+      wrap.append(el('span', 'flabel', esc(lbl)));
+      wrap.append(buildRichText(id, lbl, value, onChange)); break;
+    }
+    case 'select': {
+      wrap.innerHTML = `<label for="${id}">${esc(lbl)}</label>`;
+      const s = el('select'); s.id = id;
+      s.innerHTML = f.options.map(o => `<option value="${esc(o.value)}"${o.value === value ? ' selected' : ''}>${esc(o.label)}</option>`).join('');
+      s.addEventListener('change', () => onChange(s.value)); wrap.append(s); break;
+    }
+    case 'radio': {
+      wrap.append(el('span', 'flabel', esc(lbl)));
+      const seg = el('div', 'seg'); seg.setAttribute('role', 'radiogroup'); seg.setAttribute('aria-label', lbl);
+      f.options.forEach((o, n) => {
+        const l = el('label', '', `<input type="radio" id="${id}-${n}" name="${id}" value="${esc(o.value)}"${o.value === value ? ' checked' : ''}><span>${esc(o.label)}</span>`);
+        l.querySelector('input').addEventListener('change', () => onChange(o.value));
+        seg.append(l);
+      });
+      wrap.append(seg); break;
+    }
+    case 'image': {
+      wrap.append(el('span', 'flabel', esc(lbl)));
+      const box = el('div', 'imgfld');
+      const src = safeUrl(value, true);
+      box.innerHTML = `
+        <div class="thumb">${src ? `<img src="${esc(src)}" alt="">` : 'No picture yet — upload or drop one here'}</div>
+        <div class="grp" style="flex-wrap:wrap">
+          <input class="vh" type="file" accept="image/*" id="${id}-file">
+          <label class="btn" for="${id}-file">${value ? 'Replace' : 'Upload'}</label>
+          ${value ? '<button type="button" class="btn" data-rm>Remove</button>' : ''}
+        </div>
+        <input type="text" id="${id}-url" placeholder="…or paste an image URL" value="${value && !String(value).startsWith('data:') ? esc(value) : ''}" aria-label="Image URL">
+        <p class="msg" aria-live="polite"></p>`;
+      const msg = box.querySelector('.msg');
+      const take = async file => {
+        msg.classList.remove('err'); msg.textContent = 'Processing…';
+        try { const url = await config.upload(file); onChange(url); rebuild(); }
+        catch (err) { msg.textContent = `${err.message}. Choose a JPG, PNG, GIF, WebP or SVG file.`; msg.classList.add('err'); }
+      };
+      box.querySelector('input[type=file]').addEventListener('change', e => { const f = e.target.files?.[0]; if (f) take(f); });
+      box.querySelector('[data-rm]')?.addEventListener('click', () => { onChange(''); rebuild(); });
+      const urlIn = box.querySelector(`#${id}-url`);
+      urlIn.addEventListener('change', () => {
+        const v = urlIn.value.trim();
+        if (v && !safeUrl(v, true)) { msg.textContent = 'Use an http(s) link or a site path, such as /media/photo.jpg.'; msg.classList.add('err'); return; }
+        onChange(v); rebuild();
+      });
+      box.addEventListener('dragover', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { e.preventDefault(); box.classList.add('over'); } });
+      box.addEventListener('dragleave', () => box.classList.remove('over'));
+      box.addEventListener('drop', e => { e.preventDefault(); box.classList.remove('over'); const f = e.dataTransfer.files?.[0]; if (f) take(f); });
+      box.addEventListener('paste', e => { const f = [...(e.clipboardData?.files || [])][0]; if (f) { e.preventDefault(); take(f); } });
+      wrap.append(box); break;
+    }
+    case 'array': {
+      wrap.append(el('span', 'flabel', esc(lbl)));
+      let cur = clone(value || []);
+      const list = el('div', 'arr');
+      cur.forEach((item, i) => {
+        const card = el('div', 'arr-item');
+        const head = el('div', 'arr-head', `<span>${esc(item[Object.keys(f.arrayFields)[0]] || 'Item ' + (i + 1))}</span>`);
+        const g = el('div', 'grp');
+        g.innerHTML = `<button type="button" data-a="up" aria-label="Move up">↑</button><button type="button" data-a="down" aria-label="Move down">↓</button><button type="button" data-a="del" aria-label="Remove">✕</button>`;
+        g.addEventListener('click', e => {
+          const a = e.target.closest('[data-a]')?.dataset.a; if (!a) return;
+          if (a === 'del') cur.splice(i, 1);
+          else { const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= cur.length) return; [cur[i], cur[j]] = [cur[j], cur[i]]; }
+          onChange(clone(cur)); rebuild();
+        });
+        head.append(g); card.append(head);
+        for (const [k, sf] of Object.entries(f.arrayFields)) {
+          card.append(buildField(`${key}-${i}-${k}`, sf, item[k], v => { cur[i] = { ...cur[i], [k]: v }; onChange(clone(cur)); }, rebuild));
+        }
+        list.append(card);
+      });
+      const add = el('button', 'btn', '+ Add item'); add.type = 'button';
+      add.onclick = () => { cur.push(clone(f.defaultItemProps || {})); onChange(clone(cur)); rebuild(); };
+      list.append(add); wrap.append(list); break;
+    }
+    default: return null;
+  }
+  return wrap;
+}
+
+/* Rich text control: Quill core limited to RICH_FORMATS, with a themed toolbar.
+   The panel is rebuilt on undo/redo, so each build makes a fresh editor from the stored Delta. */
+const RT_TOOLS = [
+  { f: 'bold', label: 'Bold (Ctrl+B)', icon: '<path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/>' },
+  { f: 'italic', label: 'Italic (Ctrl+I)', icon: '<path d="M14 5h-4M14 19h-4M14 5l-4 14"/>' },
+  { f: 'underline', label: 'Underline (Ctrl+U)', icon: '<path d="M7 4v7a5 5 0 0 0 10 0V4M5 20h14"/>' },
+  { f: 'strike', label: 'Strikethrough', icon: '<path d="M5 12h14M16 6.5A4 3 0 0 0 12 5c-2.5 0-4 1.3-4 3 0 3 8 2.5 8 7 0 1.8-1.7 3-4 3a4.5 3.2 0 0 1-4.3-2"/>' },
+  'sep',
+  { f: 'list', v: 'bullet', label: 'Bulleted list', icon: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>' },
+  { f: 'list', v: 'ordered', label: 'Numbered list', icon: '<path d="M10 6h10M10 12h10M10 18h10M4 5h1.5v4M4 9h3M4 14.5c.5-.7 2.8-.7 2.8.7 0 1-2.8 1.6-2.8 2.8h3"/>' },
+  { f: 'blockquote', label: 'Quote', icon: '<path d="M5 6v12M10 8h9M10 12h9M10 16h6"/>' },
+  'sep',
+  { f: 'link', label: 'Link', icon: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>' },
+  { f: 'clean', label: 'Clear formatting', icon: '<path d="M6 5h12M12 5l-3 14M15 15l5 5M20 15l-5 5"/>' }
+];
+/* Quill's own link check resolves against the page URL (so /path fails on file://); use safeUrl as the one policy */
+if (typeof Quill !== 'undefined') Quill.import('formats/link').sanitize = url => safeUrl(url);
+function buildRichText(id, lbl, value, onChange) {
+  const box = el('div', 'rt');
+  const bar = el('div', 'rt-bar'); bar.setAttribute('role', 'toolbar'); bar.setAttribute('aria-label', `${lbl} formatting`);
+  bar.innerHTML = RT_TOOLS.map((t, n) => t === 'sep' ? '<span class="sep" aria-hidden="true"></span>'
+    : `<button type="button" data-n="${n}" title="${esc(t.label)}" aria-label="${esc(t.label)}"${t.f === 'clean' ? '' : ' aria-pressed="false"'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg></button>`).join('');
+  const linkRow = el('div', 'rt-link', `<input type="text" id="${id}-link" placeholder="https://… or /page" aria-label="Link address"><button type="button" class="btn primary" data-l="apply">Apply</button><button type="button" class="btn" data-l="remove">Remove</button><button type="button" class="btn" data-l="cancel">Cancel</button><p class="msg" aria-live="polite"></p>`);
+  linkRow.hidden = true;
+  const ed = el('div');
+  box.append(bar, linkRow, ed);
+
+  const q = new Quill(ed, {
+    formats: RICH_FORMATS,
+    placeholder: 'Start writing…',
+    modules: {
+      toolbar: false,
+      uploader: { handler: () => {} }, // no pictures inside text; use a Picture block
+      keyboard: { bindings: { tab: null, indent: null, outdent: null } } // let Tab move focus out of the editor
+    }
+  });
+  q.setContents(toDelta(value), 'silent');
+  q.history.clear();
+  q.root.id = id; q.root.setAttribute('aria-label', lbl); q.root.setAttribute('aria-multiline', 'true'); q.root.setAttribute('role', 'textbox');
+  q.on('text-change', (_d, _o, source) => { if (source !== 'silent') onChange({ ops: q.getContents().ops }); });
+
+  const sync = () => {
+    const r = q.getSelection(); const fmt = r ? q.getFormat(r) : {};
+    bar.querySelectorAll('[data-n]').forEach(b => {
+      const t = RT_TOOLS[b.dataset.n]; if (t.f === 'clean') return;
+      b.setAttribute('aria-pressed', String(t.v ? fmt[t.f] === t.v : !!fmt[t.f]));
+    });
+  };
+  q.on('editor-change', sync);
+
+  let linkRange = null;
+  const msg = linkRow.querySelector('.msg'), linkIn = linkRow.querySelector('input');
+  const closeLink = () => { linkRow.hidden = true; msg.textContent = ''; linkRange = null; };
+  const openLink = () => {
+    const r = q.getSelection();
+    if (!r || !r.length) { showToast('Select the words to link first'); return; }
+    linkRange = r; linkIn.value = q.getFormat(r).link || ''; linkRow.hidden = false; linkIn.focus();
+  };
+  const setLink = url => { q.formatText(linkRange.index, linkRange.length, 'link', url, 'user'); q.setSelection(linkRange); closeLink(); };
+  linkRow.addEventListener('click', e => {
+    const a = e.target.closest('[data-l]')?.dataset.l; if (!a || !linkRange) return;
+    if (a === 'cancel') { q.setSelection(linkRange); closeLink(); }
+    else if (a === 'remove') setLink(false);
+    else {
+      const v = linkIn.value.trim();
+      if (!v) return setLink(false);
+      if (safeUrl(v) !== v) { msg.textContent = 'Use an http(s) or mailto: link, or a site path such as /contact.'; msg.classList.add('err'); return; }
+      setLink(v);
+    }
+  });
+  linkIn.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); linkRow.querySelector('[data-l="apply"]').click(); }
+    else if (e.key === 'Escape') { e.stopPropagation(); q.setSelection(linkRange); closeLink(); }
+  });
+
+  bar.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); }); // keep the text selection
+  bar.addEventListener('click', e => {
+    const b = e.target.closest('[data-n]'); if (!b) return;
+    const t = RT_TOOLS[b.dataset.n];
+    const r = q.getSelection(true); const fmt = q.getFormat(r);
+    if (t.f === 'link') return openLink();
+    if (t.f === 'clean') { if (r.length) q.removeFormat(r.index, r.length, 'user'); else q.formatLine(r.index, 0, { list: false, blockquote: false }, 'user'); }
+    else if (t.v) q.format(t.f, fmt[t.f] === t.v ? false : t.v, 'user');
+    else q.format(t.f, !fmt[t.f], 'user');
+    sync();
+  });
+  return box;
+}
+
+/* =====================================================================
+   Publish / Import dialogs
+   ===================================================================== */
+function closeModal() { $('#modalRoot').innerHTML = ''; }
+function showToast(t) { const n = el('div', 'toast', esc(t)); document.body.append(n); setTimeout(() => n.remove(), 1800); }
+function modal(title, bodyHtml) {
+  const m = el('div', 'modal'); m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true');
+  m.innerHTML = `<div class="modal-card"><h2>${esc(title)}</h2>${bodyHtml}</div>`;
+  m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) closeModal(); });
+  closeModal(); $('#modalRoot').append(m); return m;
+}
+function openPublish(data) {
+  const json = JSON.stringify(data, null, 2);
+  const html = renderPage(config, data);
+  const m = modal('Publish', `
+    <div class="grp"><button class="btn on" data-tab="json">Page data (JSON)</button><button class="btn" data-tab="html">Rendered HTML</button></div>
+    <textarea id="pubOut" readonly></textarea>
+    <div class="modal-foot"><span class="msg">Send the JSON to your CMS API; render it with renderPage(config, data).</span>
+      <div class="grp"><button class="btn" data-close>Close</button><button class="btn primary" id="copyBtn">Copy</button></div></div>`);
+  const out = m.querySelector('#pubOut'); out.value = json;
+  m.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+    m.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('on', x === b));
+    out.value = b.dataset.tab === 'json' ? json : html;
+  });
+  m.querySelector('#copyBtn').onclick = () => {
+    const done = () => showToast('Copied');
+    navigator.clipboard?.writeText(out.value).then(done, () => { out.focus(); out.select(); showToast('Press Ctrl+C to copy'); })
+      ?? (out.focus(), out.select());
+  };
+}
+function openImport() {
+  const m = modal('Import page data', `
+    <textarea id="impIn" placeholder='{"root":{"props":{}},"content":[]}'></textarea>
+    <div class="modal-foot"><span class="msg" id="impMsg">Paste JSON exported from Publish.</span>
+      <div class="grp"><button class="btn" id="sampleBtn">Load example</button><button class="btn" data-close>Cancel</button><button class="btn primary" id="loadBtn">Load</button></div></div>`);
+  m.querySelector('#sampleBtn').onclick = () => { load(clone(SAMPLE)); };
+  m.querySelector('#loadBtn').onclick = () => {
+    const msg = m.querySelector('#impMsg');
+    try {
+      const d = JSON.parse(m.querySelector('#impIn').value);
+      if (!d || !Array.isArray(d.content)) throw new Error('missing a "content" array');
+      d.root ||= { props: {} }; d.root.props ||= {};
+      const unknown = []; (function walk(items) { items.forEach(it => { if (!config.components[it?.type] || !it.props?.id) unknown.push(it?.type); else slotNames(config, it.type).forEach(s => walk(it.props[s] || [])); }); })(d.content);
+      if (unknown.length) throw new Error(`unknown or invalid blocks: ${[...new Set(unknown)].join(', ')}`);
+      load(d);
+    } catch (err) { msg.textContent = `Could not load: ${err.message}. Check the JSON and try again.`; msg.classList.add('err'); }
+  };
+  function load(d) { Editor.selected = null; Editor.commit(d); closeModal(); showToast('Page loaded'); }
+}
+
+Editor.init();
+</script>

@@ -1,0 +1,140 @@
+{
+  "root": {
+    "props": {
+      "title": "Member services",
+      "footer": "Example content — Harbourline Mutual (fictional)"
+    }
+  },
+  "content": [
+    {
+      "type": "Hero",
+      "props": {
+        "id": "Hero-a1",
+        "title": "Member services, in one place",
+        "subtitle": "Update your details, file a claim, or reach our support team without waiting on hold.",
+        "cta": "Sign in",
+        "href": "#",
+        "align": "left"
+      }
+    },
+    {
+      "type": "Image",
+      "props": {
+        "id": "Image-a0",
+        "src": "data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%201200%20600'%3E%3Crect%20width%3D'1200'%20height%3D'600'%20fill%3D'%23cfdcf7'%2F%3E%3Ccircle%20cx%3D'930'%20cy%3D'170'%20r%3D'80'%20fill%3D'%23f6d27a'%2F%3E%3Cpath%20d%3D'M0%20380%20Q300%20300%20600%20380%20T1200%20380%20V600%20H0Z'%20fill%3D'%237d9cf2'%2F%3E%3Cpath%20d%3D'M0%20450%20Q300%20380%20600%20450%20T1200%20450%20V600%20H0Z'%20fill%3D'%232f5bd3'%2F%3E%3Cpath%20d%3D'M0%20520%20Q300%20470%20600%20520%20T1200%20520%20V600%20H0Z'%20fill%3D'%231d3a8f'%2F%3E%3C%2Fsvg%3E",
+        "alt": "Illustration of waves under a morning sun",
+        "caption": "Example picture — upload your own from the properties panel.",
+        "size": "wide",
+        "ratio": "16 / 9",
+        "align": "center"
+      }
+    },
+    {
+      "type": "Notice",
+      "props": {
+        "id": "Notice-a2",
+        "tone": "warning",
+        "title": "Scheduled maintenance",
+        "text": "Online services will be unavailable Saturday 02:00–04:00."
+      }
+    },
+    {
+      "type": "Heading",
+      "props": {
+        "id": "Heading-a3",
+        "text": "What you can do online",
+        "level": "h2",
+        "align": "left"
+      }
+    },
+    {
+      "type": "CardGrid",
+      "props": {
+        "id": "CardGrid-a4",
+        "columns": 3,
+        "items": [
+          {
+            "title": "File a claim",
+            "body": "Start a claim and upload supporting documents."
+          },
+          {
+            "title": "Update details",
+            "body": "Change your address, phone number or beneficiaries."
+          },
+          {
+            "title": "Download statements",
+            "body": "Access statements from the last seven years."
+          }
+        ]
+      }
+    },
+    {
+      "type": "Columns",
+      "props": {
+        "id": "Columns-a5",
+        "ratio": "2fr 1fr",
+        "left": [
+          {
+            "type": "Heading",
+            "props": {
+              "id": "Heading-b1",
+              "text": "Need help?",
+              "level": "h3",
+              "align": "left"
+            }
+          },
+          {
+            "type": "Text",
+            "props": {
+              "id": "Text-b2",
+              "text": {
+                "ops": [
+                  {
+                    "insert": "Our support team replies within "
+                  },
+                  {
+                    "insert": "one working day",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": ". For urgent matters, call the hotline during office hours.\nHave ready:\nYour member number"
+                  },
+                  {
+                    "insert": "\n",
+                    "attributes": {
+                      "list": "bullet"
+                    }
+                  },
+                  {
+                    "insert": "A short description of the problem"
+                  },
+                  {
+                    "insert": "\n",
+                    "attributes": {
+                      "list": "bullet"
+                    }
+                  }
+                ]
+              },
+              "align": "left"
+            }
+          }
+        ],
+        "right": [
+          {
+            "type": "Button",
+            "props": {
+              "id": "Button-b3",
+              "label": "Contact support",
+              "href": "#",
+              "variant": "primary",
+              "align": "left"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

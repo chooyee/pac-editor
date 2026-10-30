@@ -1,0 +1,29 @@
+name: Bug report
+description: Something does not work as described
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps or page data to reproduce
+      description: The smallest page JSON or config that shows the problem helps most.
+      render: js
+  - type: input
+    id: version
+    attributes:
+      label: PacEditor version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and operating system
+      placeholder: Chrome 131 on Windows 11

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PacEditor — basic example</title>
+
+  <!-- 1. Editor styles (include the block styles used on the canvas) -->
+  <link rel="stylesheet" href="../../dist/pac-editor.css">
+  <style>
+    /* 2. The editor fills its container, so give the container a height */
+    html, body { margin: 0; height: 100%; }
+    #editor { height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="editor"></div>
+
+  <!-- 3. Optional: Quill enables the rich text (Text block). Without it, a plain textarea is used. -->
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+  <!-- 4. PacEditor: adds window.PacEditor -->
+  <script src="../../dist/pac-editor.js"></script>
+  <script>
+    // Page data uses the Puck shape: { root: { props }, content: [ { type, props: { id, ... } } ] }
+    const initialData = {
+      root: { props: { title: 'Hello PacEditor', footer: '' } },
+      content: [
+        { type: 'Hero', props: { id: 'Hero-1', title: 'Hello PacEditor', subtitle: 'Drag blocks from the left, edit them on the right.', cta: 'Read the docs', href: '#', align: 'left' } },
+        { type: 'Text', props: { id: 'Text-1', text: { ops: [{ insert: 'This paragraph is ' }, { insert: 'rich text', attributes: { bold: true } }, { insert: '. Select it to edit.\n' }] }, align: 'left' } }
+      ]
+    };
+
+    const editor = PacEditor.createEditor('#editor', {
+      data: initialData,
+      storageKey: 'pac-editor-basic-draft', // autosave a draft in this browser
+      onPublish: async data => {
+        // Send the JSON to your server here, e.g.:
+        // await fetch('/api/pages/home', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        console.log('Published page data', data);
+        console.log('Rendered HTML', PacEditor.render(PacEditor.defaultConfig, data));
+      }
+    });
+  </script>
+</body>
+</html>

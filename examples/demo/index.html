@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PacEditor — demo</title>
+  <!-- Optional fonts; the styles fall back to system fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="../../dist/pac-editor.css">
+  <style>
+    html, body { margin: 0; height: 100%; }
+    #editor { height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="editor"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+  <script src="../../dist/pac-editor.js"></script>
+  <script>
+    // Served over http (npm run dev): fetch works. The sample page is in examples/data/.
+    fetch('../data/sample-page.json').then(r => r.json()).catch(() => null).then(sample => {
+      PacEditor.createEditor('#editor', {
+        title: 'PacEditor demo',
+        data: sample || undefined,
+        exampleData: sample || undefined,      // adds "Load example" to the Import dialog
+        storageKey: 'pac-editor-demo-draft',
+        publishLabel: 'Publish & view',
+        onPublish: data => {
+          // A real app would PUT this to its API. Here the "server" is localStorage.
+          localStorage.setItem('pac-editor-demo-published', JSON.stringify(data));
+          window.open('view.html', '_blank', 'noopener');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
