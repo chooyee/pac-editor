@@ -10,6 +10,8 @@ PacEditor stores pages in the same JSON shape as [Puck](https://puckeditor.com),
 - **Your own blocks** in a few lines: a block is a label, some fields and a `render` function that returns HTML.
 - **Small**: about 43 KB minified for the editor and renderer together (Quill is optional and loaded separately).
 
+**[Try the live demo](https://chooyee.github.io/pac-editor/examples/demo/)** · [all examples](https://chooyee.github.io/pac-editor/examples/)
+
 > Status: early (0.x). The data format follows Puck and is expected to stay stable; the JavaScript API may still change before 1.0. See the [changelog](CHANGELOG.md).
 
 ## Quick start (script tag)
@@ -108,7 +110,7 @@ Use the same `config` when you call `render` on the server.
 | [Security](docs/security.md) | How output is kept safe, and what your server must still do |
 | [Architecture](docs/architecture.md) | How the code is organised, for contributors |
 
-Examples live in [`examples/`](examples/). Run `npm run dev` and open <http://localhost:8000/examples/>.
+Examples live in [`examples/`](examples/). Try them [online](https://chooyee.github.io/pac-editor/examples/), or run `npm run dev` and open <http://localhost:8000/examples/>. The online copy is rebuilt from `main` by the [Pages workflow](.github/workflows/pages.yml).
 
 ## Browser support
 
