@@ -1,0 +1,31 @@
+# PacEditor
+
+> PacEditor is an open-source (MIT) drag-and-drop page builder written in plain JavaScript. You add it to any web page with one script tag; it needs no React, framework or build step. Pages are stored as JSON in the same shape as Puck (puckeditor.com), and a DOM-free renderer turns that JSON into HTML on the server or in the browser.
+
+Key facts:
+
+- Install: `npm install pac-editor quill`, or load `https://cdn.jsdelivr.net/npm/pac-editor@0.1/dist/pac-editor.min.js` and `pac-editor.min.css` from jsDelivr.
+- Mount: `PacEditor.createEditor('#editor', { data, onPublish })`. The editor fills its container, so give the container a height.
+- Render: `import { render, validateData, defaultConfig } from 'pac-editor/render'`, then `render(defaultConfig, data)` returns an HTML string. Include `blocks.css` on the public page.
+- Custom blocks: an object with `label`, `fields`, `defaultProps` and a `render(props)` function that returns HTML; combine them with `extendConfig`.
+- Rich text uses Quill (optional) and is stored as JSON, not HTML.
+- Status: 0.x. The data format is expected to stay stable; the JavaScript API may change before 1.0.
+
+## Docs
+
+- [Getting started](https://github.com/chooyee/pac-editor/blob/main/docs/getting-started.md): installing, mounting the editor, saving and loading pages
+- [Configuration](https://github.com/chooyee/pac-editor/blob/main/docs/configuration.md): components, fields, rich text, arrays, slots, custom fields, categories
+- [Editor API](https://github.com/chooyee/pac-editor/blob/main/docs/editor-api.md): every `createEditor` option and editor method
+- [Rendering and styling](https://github.com/chooyee/pac-editor/blob/main/docs/rendering.md): server and browser rendering, CSS, theming
+- [Security](https://github.com/chooyee/pac-editor/blob/main/docs/security.md): how output is kept safe and what your server must still do
+
+## Examples
+
+- [Live demo](https://chooyee.github.io/pac-editor/examples/demo/)
+- [All examples](https://chooyee.github.io/pac-editor/examples/)
+
+## Optional
+
+- [Source code](https://github.com/chooyee/pac-editor)
+- [Architecture](https://github.com/chooyee/pac-editor/blob/main/docs/architecture.md)
+- [Changelog](https://github.com/chooyee/pac-editor/blob/main/CHANGELOG.md)

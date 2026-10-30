@@ -30,10 +30,10 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site
+          # Landing page, sitemap.xml, llms.txt (and any search-engine verification file)
+          cp -r site/. _site/
           # The example pages load PacEditor from jsDelivr, so dist/ is not published
           cp -r examples _site/
-          # Send the site root to the examples index
-          echo '<!doctype html><meta http-equiv="refresh" content="0; url=examples/">' > _site/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PacEditor: drag-and-drop page builder in plain JavaScript</title>
+  <meta name="description" content="PacEditor is a free, open-source drag-and-drop page builder you add to any web page with one script tag. No React or build step. Puck-compatible JSON, rich text, nested layouts and server-side rendering.">
+  <link rel="canonical" href="https://chooyee.github.io/pac-editor/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="PacEditor">
+  <meta property="og:title" content="PacEditor: drag-and-drop page builder in plain JavaScript">
+  <meta property="og:description" content="Add a visual page builder to any web page with one script tag. No framework, Puck-compatible data, MIT licensed.">
+  <meta property="og:url" content="https://chooyee.github.io/pac-editor/">
+  <meta name="twitter:card" content="summary">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "PacEditor",
+    "description": "Framework-free drag-and-drop page builder with a Puck-compatible data model. Drop it into any HTML page with one script tag.",
+    "url": "https://chooyee.github.io/pac-editor/",
+    "codeRepository": "https://github.com/chooyee/pac-editor",
+    "programmingLanguage": "JavaScript",
+    "runtimePlatform": "Web browser, Node.js",
+    "license": "https://opensource.org/licenses/MIT",
+    "author": { "@type": "Person", "name": "Lee Choo Yee" },
+    "keywords": "page builder, drag and drop, visual editor, CMS, WYSIWYG, Puck, vanilla JavaScript, no framework"
+  }
+  </script>
+
+  <style>
+    :root {
+      --bg: #f8faf9; --surface: #ffffff; --text: #17201e; --muted: #56625f;
+      --border: #dde3e1; --accent: #2f5bd3; --accent-text: #ffffff; --code-bg: #eef1f0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #121716; --surface: #1a2120; --text: #e4ebe9; --muted: #9aa7a4;
+        --border: #2c3634; --accent: #7d9cf2; --accent-text: #0d1430; --code-bg: #252e2c;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #121716; --surface: #1a2120; --text: #e4ebe9; --muted: #9aa7a4;
+      --border: #2c3634; --accent: #7d9cf2; --accent-text: #0d1430; --code-bg: #252e2c;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 17px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--text); background: var(--bg); }
+    main { max-width: 820px; margin: 0 auto; padding: 48px 16px 64px; }
+    h1 { font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.15; margin: 0 0 12px; letter-spacing: -.02em; }
+    h2 { font-size: 1.4rem; margin: 48px 0 12px; }
+    h3 { font-size: 1.05rem; margin: 0 0 4px; }
+    p { margin: 0 0 14px; }
+    a { color: var(--accent); }
+    .lede { font-size: 1.15rem; color: var(--muted); max-width: 640px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 8px; }
+    .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
+    .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; padding: 0; list-style: none; }
+    .features li { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .features p { margin: 0; color: var(--muted); font-size: .95rem; }
+    pre { background: var(--code-bg); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: .85rem; line-height: 1.5; }
+    code { font-family: ui-monospace, "JetBrains Mono", Consolas, monospace; }
+    p code, li code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+    dt { font-weight: 600; margin-top: 16px; }
+    dd { margin: 4px 0 0; color: var(--muted); }
+    footer { border-top: 1px solid var(--border); margin-top: 56px; padding-top: 16px; color: var(--muted); font-size: .9rem; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>PacEditor</h1>
+  <p class="lede">A drag-and-drop page builder you add to any web page with one <code>&lt;script&gt;</code> tag. No React, no framework, no build step.</p>
+  <div class="actions">
+    <a class="btn primary" href="examples/demo/">Try the live demo</a>
+    <a class="btn" href="examples/">All examples</a>
+    <a class="btn" href="https://github.com/chooyee/pac-editor">GitHub</a>
+  </div>
+
+  <h2>Features</h2>
+  <ul class="features">
+    <li><h3>Visual editor</h3><p>Block palette, drag and drop, nested layouts, properties panel, undo and redo, outline, and preview at desktop, tablet and mobile widths.</p></li>
+    <li><h3>Works anywhere</h3><p>Plain JavaScript. Use it on a static HTML page, a server-rendered app, or inside React, Vue or any other framework.</p></li>
+    <li><h3>Puck-compatible data</h3><p>Pages are stored in the same JSON shape as Puck, so configs, components, fields and slots carry over.</p></li>
+    <li><h3>Safe rich text</h3><p>Rich text (via Quill) is stored as JSON, not HTML, so saved pages cannot inject markup.</p></li>
+    <li><h3>Server rendering</h3><p>The renderer has no DOM dependency. Turn page JSON into HTML in Node, Deno, Bun, workers or the browser.</p></li>
+    <li><h3>Small</h3><p>About 43 KB minified for the editor and renderer together. Quill is optional.</p></li>
+  </ul>
+
+  <h2>Quick start</h2>
+  <p>Add the stylesheet and script, then mount the editor on an element:</p>
+<pre><code>&lt;link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pac-editor@0.1/dist/pac-editor.min.css"&gt;
+&lt;div id="editor" style="height: 100vh"&gt;&lt;/div&gt;
+
+&lt;script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"&gt;&lt;/script&gt;
+&lt;script src="https://cdn.jsdelivr.net/npm/pac-editor@0.1/dist/pac-editor.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  PacEditor.createEditor('#editor', {
+    onPublish: async data =&gt; {
+      await fetch('/api/pages/home', { method: 'PUT', body: JSON.stringify(data) });
+    }
+  });
+&lt;/script&gt;</code></pre>
+  <p>Or install from npm with <code>npm install pac-editor quill</code>. Read the <a href="https://github.com/chooyee/pac-editor/blob/main/docs/getting-started.md">getting started guide</a>.</p>
+
+  <h2>Your own blocks</h2>
+  <p>A block is a label, some fields and a <code>render</code> function that returns HTML:</p>
+<pre><code>const Quote = {
+  label: 'Quote',
+  fields: { text: { type: 'textarea', label: 'Quote' } },
+  defaultProps: { text: 'Something memorable.' },
+  render: p =&gt; `&lt;blockquote&gt;${PacEditor.esc(p.text)}&lt;/blockquote&gt;`
+};</code></pre>
+  <p>See the <a href="https://github.com/chooyee/pac-editor/blob/main/docs/configuration.md">configuration guide</a> for fields, arrays, slots and custom fields.</p>
+
+  <h2>Questions</h2>
+  <dl>
+    <dt>How is PacEditor different from Puck?</dt>
+    <dd>Puck is a React component. PacEditor uses the same page data format but is written in plain JavaScript, so it runs without React or a build step.</dd>
+    <dt>Can I render pages on the server?</dt>
+    <dd>Yes. Import <code>render</code> from <code>pac-editor/render</code>. It has no DOM dependency and returns an HTML string.</dd>
+    <dt>Where are pages saved?</dt>
+    <dd>Wherever you choose. The editor gives you JSON in <code>onPublish</code>, and you send it to your own server or storage.</dd>
+    <dt>Is it free?</dt>
+    <dd>Yes. PacEditor is open source under the MIT license.</dd>
+  </dl>
+
+  <footer>
+    PacEditor is MIT licensed. Source, issues and docs are on <a href="https://github.com/chooyee/pac-editor">GitHub</a>.
+  </footer>
+</main>
+</body>
+</html>
