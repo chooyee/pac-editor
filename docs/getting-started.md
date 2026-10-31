@@ -106,6 +106,8 @@ Other ways to get the data out:
 - `editor.getData()` returns the current page at any time.
 - `storageKey: 'my-draft'` autosaves a draft to the browser's localStorage and restores it on reload.
 
+To rename the Publish button (for example to "Save draft"), use `publishLabel`. To hide Preview, Import or Publish, or add your own buttons such as a separate "Save draft" and "Publish", use the `toolbar` option. See [Editor API → Toolbar](editor-api.md#toolbar).
+
 ## 4. Show the page to visitors
 
 Render the saved JSON to HTML. Rendering on the server is best: visitors get HTML straight away and search engines can read it.

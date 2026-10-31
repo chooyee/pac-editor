@@ -2,6 +2,47 @@
 export * from './render';
 import type { Config, Data } from './render';
 
+export interface ToolbarButton {
+  /** Unique id; the button gets data-fp-btn="<id>". */
+  id: string;
+  /** Button text (escaped). Hidden on narrow screens when an icon is given. */
+  label?: string;
+  /** Tooltip. Defaults to the label when an icon is given. */
+  title?: string;
+  /** SVG markup inserted as-is, so only pass trusted markup. */
+  icon?: string;
+  /** Style it like the Publish button. */
+  primary?: boolean;
+  /** Runs on click. Return a promise to keep the button disabled until it settles; a rejection is shown as a toast. */
+  onClick?: (editor: Editor, event: MouseEvent) => void | Promise<void>;
+}
+
+export interface ToolbarOptions {
+  /** Undo and Redo buttons. Default true. */
+  undo?: boolean;
+  /** Desktop / Tablet / Mobile buttons. Default: the `viewports` option, else true. */
+  viewports?: boolean;
+  /** Preview button. Default true. */
+  preview?: boolean;
+  /** Import button. Default: the `showImport` option, else true. */
+  import?: boolean;
+  /** Publish button. Default true. */
+  publish?: boolean;
+  /** Your own buttons, placed before Publish. */
+  buttons?: ToolbarButton[];
+}
+
+export interface EditorEvents {
+  change: (data: Data) => void;
+  select: (id: string | null) => void;
+  preview: (on: boolean) => void;
+  viewport: (name: 'desktop' | 'tablet' | 'mobile') => void;
+  /** Publish was pressed (or publish() called), before onPublish runs. */
+  publish: (data: Data) => void;
+  /** A page was loaded from the Import dialog. */
+  import: (data: Data) => void;
+}
+
 export interface EditorOptions {
   /** Components, categories and root. Default: defaultConfig. */
   config?: Config;
@@ -32,6 +73,10 @@ export interface EditorOptions {
   exampleData?: Data;
   /** Show the Desktop / Tablet / Mobile preview buttons. Default true. */
   viewports?: boolean;
+  /** Hide built-in toolbar buttons and add your own. */
+  toolbar?: ToolbarOptions;
+  /** Event handlers, the same as calling editor.on() for each. */
+  on?: { [K in keyof EditorEvents]?: EditorEvents[K] };
 }
 
 export declare class Editor {
@@ -49,6 +94,17 @@ export declare class Editor {
   setTheme(theme: 'auto' | 'light' | 'dark'): void;
   /** Open or close the blocks ('left') or properties ('right') panel. */
   setPanel(side: 'left' | 'right', open: boolean): void;
+  /** Listen for an editor event. Returns a function that removes the handler. */
+  on<K extends keyof EditorEvents>(type: K, handler: EditorEvents[K]): () => void;
+  off<K extends keyof EditorEvents>(type: K, handler: EditorEvents[K]): void;
+  /** Same as the Publish button. */
+  publish(): Promise<void>;
+  /** Same as the Import button. */
+  openImport(): void;
+  /** Turn preview mode on or off. */
+  setPreview(on: boolean): void;
+  /** Set the canvas width. Works even when the viewport buttons are hidden. */
+  setViewport(name: 'desktop' | 'tablet' | 'mobile'): void;
   /** Remove the editor's markup and every listener it added. */
   destroy(): void;
 }

@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+- `toolbar` option: hide Undo/Redo, viewport, Preview, Import or Publish buttons, and add your own buttons with `onClick(editor, event)`.
+- Events: `editor.on(type, handler)` / `off`, and an `on` option, for `change`, `select`, `preview`, `viewport`, `publish` and `import`.
+- Editor methods `setPreview(on)` and `setViewport(name)`; `publish()` and `openImport()` are now documented.
+- Full-screen mode for rich text fields (toolbar button; Esc exits).
+
+### Changed
+- Text, lists and quotes in the Text block are no longer limited to 68 characters wide.
+
 ## [0.1.0] - 2026-10-30
 
 First release as a library, built from the single-file prototype (kept in `prototype/`).

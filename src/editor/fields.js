@@ -160,6 +160,9 @@ const RT_TOOLS = [
   { f: 'clean', label: 'Clear formatting', icon: '<path d="M6 5h12M12 5l-3 14M15 15l5 5M20 15l-5 5"/>' }
 ];
 
+const RT_FULL_ICON = '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>';
+const RT_EXIT_ICON = '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>';
+
 /* Quill's own link check resolves against the page URL (so /path fails on file://); use safeUrl as the one policy. */
 const patched = new WeakSet();
 export function patchQuill(Quill) {
@@ -174,7 +177,8 @@ function buildRichText(ctx, id, lbl, value, onChange) {
   const box = el('div', 'fp-rt');
   const bar = el('div', 'fp-rt-bar'); bar.setAttribute('role', 'toolbar'); bar.setAttribute('aria-label', `${lbl} formatting`);
   bar.innerHTML = RT_TOOLS.map((t, n) => t === 'sep' ? '<span class="sep" aria-hidden="true"></span>'
-    : `<button type="button" data-n="${n}" title="${esc(t.label)}" aria-label="${esc(t.label)}"${t.f === 'clean' ? '' : ' aria-pressed="false"'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg></button>`).join('');
+    : `<button type="button" data-n="${n}" title="${esc(t.label)}" aria-label="${esc(t.label)}"${t.f === 'clean' ? '' : ' aria-pressed="false"'}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.icon}</svg></button>`).join('')
+    + `<button type="button" class="fp-rt-full" data-full title="Full screen" aria-label="Full screen" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${RT_FULL_ICON}</svg></button>`;
   const linkRow = el('div', 'fp-rt-link', `<input type="text" id="${id}-link" placeholder="https://… or /page" aria-label="Link address"><button type="button" class="fp-btn primary" data-l="apply">Apply</button><button type="button" class="fp-btn" data-l="remove">Remove</button><button type="button" class="fp-btn" data-l="cancel">Cancel</button><p class="fp-msg" aria-live="polite"></p>`);
   linkRow.hidden = true;
   const ed = el('div');
@@ -228,8 +232,22 @@ function buildRichText(ctx, id, lbl, value, onChange) {
     else if (e.key === 'Escape') { e.stopPropagation(); q.setSelection(linkRange); closeLink(); }
   });
 
+  // Full screen: the same editor is pinned over the whole window, so there is nothing to sync back.
+  const fullBtn = bar.querySelector('[data-full]');
+  const setFull = on => {
+    box.classList.toggle('is-full', on);
+    const label = on ? 'Exit full screen (Esc)' : 'Full screen';
+    fullBtn.title = label; fullBtn.setAttribute('aria-label', label); fullBtn.setAttribute('aria-pressed', String(on));
+    fullBtn.querySelector('svg').innerHTML = on ? RT_EXIT_ICON : RT_FULL_ICON;
+    q.focus();
+  };
+  box.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && box.classList.contains('is-full')) { e.stopPropagation(); setFull(false); }
+  });
+
   bar.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); }); // keep the text selection
   bar.addEventListener('click', e => {
+    if (e.target.closest('[data-full]')) return setFull(!box.classList.contains('is-full'));
     const b = e.target.closest('[data-n]'); if (!b) return;
     const t = RT_TOOLS[b.dataset.n];
     const r = q.getSelection(true); const fmt = q.getFormat(r);

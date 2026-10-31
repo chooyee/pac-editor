@@ -32,8 +32,10 @@ jobs:
           mkdir -p _site
           # Landing page, sitemap.xml, llms.txt (and any search-engine verification file)
           cp -r site/. _site/
-          # The example pages load PacEditor from jsDelivr, so dist/ is not published
+          # Most example pages load PacEditor from jsDelivr. Examples of features not yet released
+          # on npm (toolbar-events) load ../../dist/, so the fresh build is published too.
           cp -r examples _site/
+          cp -r dist _site/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

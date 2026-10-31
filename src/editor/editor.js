@@ -44,6 +44,8 @@ export class Editor {
     this.drag = null; this.drop = null; this.lastCoalesce = null; this.lastTime = 0;
     this.ui = { leftClosed: false, rightClosed: false, outlineClosed: false };
     this.cleanup = [];
+    this.handlers = {};
+    for (const [type, fn] of Object.entries(options.on || {})) this.on(type, fn);
 
     let start = options.data ? clone(options.data) : emptyData(this.config);
     if (this.storageKey) {
@@ -57,6 +59,13 @@ export class Editor {
   }
 
   /* ---------------- public API ---------------- */
+
+  /** Listen for an editor event ('change', 'select', 'preview', 'viewport', 'publish', 'import'). Returns an unsubscribe function. */
+  on(type, fn) { (this.handlers[type] ||= new Set()).add(fn); return () => this.off(type, fn); }
+  off(type, fn) { this.handlers[type]?.delete(fn); }
+  emit(type, ...args) {
+    this.handlers[type]?.forEach(fn => { try { fn(...args); } catch (err) { console.error(`PacEditor: ${type} handler failed`, err); } });
+  }
 
   /** Current page data (a copy). */
   getData() { return clone(this.data); }
@@ -76,8 +85,31 @@ export class Editor {
 
   /** Select a block by id (null selects the page). */
   select(id, scroll) {
+    const changed = this.selected !== id;
     this.selected = id; this.render(true);
+    if (changed) this.emit('select', id);
     if (scroll && id) requestAnimationFrame(() => this.$(`.fp-item[data-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+  }
+
+  /** Turn preview mode on or off (same as the Preview button). */
+  setPreview(on) {
+    on = !!on; if (on === this.preview) return;
+    this.preview = on;
+    if (on) this.closeDrawers();
+    this.root.classList.toggle('is-preview', on);
+    const b = this.$('[data-fp="preview"]');
+    if (b) { b.classList.toggle('on', on); b.textContent = on ? 'Edit' : 'Preview'; }
+    this.render(false);
+    this.emit('preview', on);
+  }
+
+  /** Canvas width: 'desktop', 'tablet' or 'mobile'. Works even when the viewport buttons are hidden. */
+  setViewport(name) {
+    if (!['desktop', 'tablet', 'mobile'].includes(name) || name === this.viewport) return;
+    this.viewport = name;
+    this.$('[data-fp="frame"]').className = `fp-frame vp-${name}`;
+    this.$$('[data-vp]').forEach(x => x.classList.toggle('on', x.dataset.vp === name));
+    this.emit('viewport', name);
   }
 
   /** 'auto' follows the operating system; 'light' or 'dark' forces one. */
@@ -106,6 +138,7 @@ export class Editor {
   destroy() {
     this.cleanup.forEach(fn => fn());
     this.cleanup = [];
+    this.handlers = {};
     this.root.innerHTML = '';
     this.root.classList.remove('fp-editor', 'is-left-closed', 'is-right-closed', 'is-left-open', 'is-right-open', 'is-preview');
     delete this.root.dataset.theme;
@@ -117,28 +150,44 @@ export class Editor {
   $$(s) { return this.root.querySelectorAll(s); }
   listen(target, type, fn, opts) { target.addEventListener(type, fn, opts); this.cleanup.push(() => target.removeEventListener(type, fn, opts)); }
 
+  /* Built-in toolbar buttons can be hidden; the older showImport / viewports options still work. */
+  toolbarOptions() {
+    const o = this.options, t = o.toolbar || {};
+    return {
+      undo: t.undo !== false,
+      viewports: t.viewports ?? o.viewports !== false,
+      preview: t.preview !== false,
+      import: t.import ?? o.showImport !== false,
+      publish: t.publish !== false,
+      buttons: (t.buttons || []).filter(b => b && b.id && (b.label || b.icon))
+    };
+  }
+
   mount() {
     const o = this.options, p = this.prefix;
     const root = this.root;
+    const tb = this.toolbarOptions();
+    // icon is trusted markup from the developer; label and title are escaped
+    const custom = tb.buttons.map(b => `<button type="button" class="fp-btn${b.primary ? ' primary' : ''}" data-fp-btn="${esc(b.id)}"${b.title || b.icon ? ` title="${esc(b.title || b.label || '')}"` : ''}${b.icon && b.label ? ` aria-label="${esc(b.label)}"` : ''}>${b.icon || ''}${b.label ? (b.icon ? `<span class="fp-txt">${esc(b.label)}</span>` : esc(b.label)) : ''}</button>`).join('');
+    const actions = (tb.preview ? '<button type="button" class="fp-btn" data-fp="preview">Preview</button>' : '')
+      + (tb.import ? '<button type="button" class="fp-btn" data-fp="import">Import</button>' : '')
+      + custom
+      + (tb.publish ? `<button type="button" class="fp-btn primary" data-fp="publish">${esc(o.publishLabel || 'Publish')}</button>` : '');
     root.classList.add('fp-editor');
     root.innerHTML = `
       <header class="fp-topbar">
         <button type="button" class="fp-btn fp-panel-toggle" data-panel="left" aria-controls="${p}left" aria-expanded="true" aria-label="Blocks panel" title="Show or hide the blocks panel">${I.left}<span class="fp-txt">Blocks</span></button>
         <div class="fp-brand">${esc(o.title ?? 'Page Builder')} <small data-fp="status"></small></div>
-        <div class="fp-grp">
+        ${tb.undo ? `<div class="fp-grp">
           <button type="button" class="fp-btn" data-fp="undo" title="Undo (Ctrl+Z)" aria-label="Undo">${I.undo}<span class="fp-txt">Undo</span></button>
           <button type="button" class="fp-btn" data-fp="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo">${I.redo}<span class="fp-txt">Redo</span></button>
-        </div>
-        ${o.viewports === false ? '' : `<div class="fp-grp fp-vp-group" data-fp="vp">
+        </div>` : ''}
+        ${tb.viewports ? `<div class="fp-grp fp-vp-group" data-fp="vp">
           <button type="button" class="fp-btn on" data-vp="desktop">Desktop</button>
           <button type="button" class="fp-btn" data-vp="tablet">Tablet</button>
           <button type="button" class="fp-btn" data-vp="mobile">Mobile</button>
-        </div>`}
-        <div class="fp-grp">
-          <button type="button" class="fp-btn" data-fp="preview">Preview</button>
-          ${o.showImport === false ? '' : '<button type="button" class="fp-btn" data-fp="import">Import</button>'}
-          <button type="button" class="fp-btn primary" data-fp="publish">${esc(o.publishLabel || 'Publish')}</button>
-        </div>
+        </div>` : ''}
+        ${actions ? `<div class="fp-grp">${actions}</div>` : ''}
         <button type="button" class="fp-btn fp-panel-toggle" data-panel="right" aria-controls="${p}right" aria-expanded="true" aria-label="Properties panel" title="Show or hide the properties panel">${I.right}<span class="fp-txt">Properties</span></button>
       </header>
       <div class="fp-main">
@@ -225,7 +274,9 @@ export class Editor {
   changed() {
     this.save();
     if (!this.storageKey) this.setStatus('unsaved changes');
-    this.options.onChange?.(this.getData());
+    const data = this.getData();
+    this.options.onChange?.(data);
+    this.emit('change', data);
   }
   save() {
     if (!this.storageKey) return;
@@ -287,8 +338,9 @@ export class Editor {
     this.$('[data-fp="frame"]').innerHTML = render(this.config, this.data, { edit: !this.preview, selected: this.selected });
     this.renderOutline();
     if (panel) this.renderPanel();
-    this.$('[data-fp="undo"]').disabled = this.hIndex <= 0;
-    this.$('[data-fp="redo"]').disabled = this.hIndex >= this.history.length - 1;
+    const undo = this.$('[data-fp="undo"]'), redo = this.$('[data-fp="redo"]');
+    if (undo) undo.disabled = this.hIndex <= 0;
+    if (redo) redo.disabled = this.hIndex >= this.history.length - 1;
   }
   renderPalette() {
     const wrap = this.$('[data-fp="palette"]');
@@ -442,27 +494,23 @@ export class Editor {
     this.listen(document, 'dragover', noFileNav); this.listen(document, 'drop', noFileNav);
 
     /* top bar */
-    this.listen(this.$('[data-fp="undo"]'), 'click', () => this.undo());
-    this.listen(this.$('[data-fp="redo"]'), 'click', () => this.redo());
-    const vp = this.$('[data-fp="vp"]');
-    if (vp) this.listen(vp, 'click', e => {
-      const b = e.target.closest('[data-vp]'); if (!b) return;
-      this.viewport = b.dataset.vp;
-      this.$('[data-fp="frame"]').className = `fp-frame vp-${this.viewport}`;
-      vp.querySelectorAll('[data-vp]').forEach(x => x.classList.toggle('on', x === b));
-    });
-    const prev = this.$('[data-fp="preview"]');
-    this.listen(prev, 'click', () => {
-      this.preview = !this.preview;
-      if (this.preview) this.closeDrawers();
-      this.root.classList.toggle('is-preview', this.preview);
-      prev.classList.toggle('on', this.preview);
-      prev.textContent = this.preview ? 'Edit' : 'Preview';
-      this.render(false);
-    });
-    this.listen(this.$('[data-fp="publish"]'), 'click', () => this.publish());
-    const imp = this.$('[data-fp="import"]');
-    if (imp) this.listen(imp, 'click', () => this.openImport());
+    const on = (sel, fn) => { const n = this.$(sel); if (n) this.listen(n, 'click', fn); };
+    on('[data-fp="undo"]', () => this.undo());
+    on('[data-fp="redo"]', () => this.redo());
+    on('[data-fp="vp"]', e => { const b = e.target.closest('[data-vp]'); if (b) this.setViewport(b.dataset.vp); });
+    on('[data-fp="preview"]', () => this.setPreview(!this.preview));
+    on('[data-fp="publish"]', () => this.publish());
+    on('[data-fp="import"]', () => this.openImport());
+    /* developer buttons: onClick(editor, event); a returned promise keeps the button disabled until it settles */
+    for (const b of this.toolbarOptions().buttons) {
+      const n = this.$(`[data-fp-btn="${CSS.escape(b.id)}"]`);
+      if (n && b.onClick) this.listen(n, 'click', async e => {
+        n.disabled = true;
+        try { await b.onClick(this, e); }
+        catch (err) { this.toast(`${b.label || b.id} failed: ${err?.message || err}`); }
+        finally { n.disabled = false; }
+      });
+    }
 
     /* keyboard: only when focus is in this editor (or nowhere in particular) */
     this.listen(document, 'keydown', e => {
@@ -481,14 +529,16 @@ export class Editor {
 
   /* ---------------- publish / import / dialogs ---------------- */
 
+  /** Same as the Publish button: runs onPublish, or opens the JSON / HTML dialog without it. */
   async publish() {
     const onPublish = this.options.onPublish;
+    this.emit('publish', this.getData());
     if (!onPublish) return this.openPublish();
     const btn = this.$('[data-fp="publish"]');
-    btn.disabled = true;
+    if (btn) btn.disabled = true;
     try { await onPublish(this.getData()); this.setStatus('published'); this.toast('Published'); }
     catch (err) { this.toast(`Could not publish: ${err?.message || err}`); }
-    finally { btn.disabled = false; }
+    finally { if (btn) btn.disabled = false; }
   }
 
   toast(t) { const n = el('div', 'fp-toast', esc(t)); n.setAttribute('role', 'status'); this.root.append(n); setTimeout(() => n.remove(), 2200); }
@@ -527,13 +577,14 @@ export class Editor {
       if (navigator.clipboard) navigator.clipboard.writeText(out.value).then(() => this.toast('Copied'), fallback); else fallback();
     };
   }
+  /** Same as the Import button: opens the paste-JSON dialog. */
   openImport() {
     const example = this.options.exampleData;
     const m = this.modal('Import page data', `
       <textarea placeholder='{"root":{"props":{}},"content":[]}' aria-label="Page data JSON"></textarea>
       <div class="fp-modal-foot"><span class="fp-msg" data-msg>Paste JSON exported from Publish.</span>
         <div class="fp-grp">${example ? '<button type="button" class="fp-btn" data-example>Load example</button>' : ''}<button type="button" class="fp-btn" data-close>Cancel</button><button type="button" class="fp-btn primary" data-load>Load</button></div></div>`);
-    const load = d => { this.selected = null; d.root ||= { props: {} }; d.root.props ||= {}; this.commit(d); this.closeModal(); this.toast('Page loaded'); };
+    const load = d => { this.selected = null; d.root ||= { props: {} }; d.root.props ||= {}; this.commit(d); this.closeModal(); this.toast('Page loaded'); this.emit('import', this.getData()); };
     m.querySelector('[data-example]')?.addEventListener('click', () => load(clone(example)));
     m.querySelector('[data-load]').onclick = () => {
       const msg = m.querySelector('[data-msg]');

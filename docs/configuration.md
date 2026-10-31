@@ -133,6 +133,7 @@ A `richtext` field stores a [Quill Delta](https://quilljs.com/docs/delta/), whic
 - Allowed formats: bold, italic, underline, strikethrough, link, bulleted and numbered lists, and quotes. Anything else, including colours, fonts, sizes and pictures pasted from Word or a web page, is removed.
 - Font, colour and size are left out on purpose, so pages keep your site's design and stay readable in dark mode. Use a Heading block for headings, and the block's alignment setting for alignment.
 - Render it with `renderRich(value)`. It escapes all text and checks every link with `safeUrl`.
+- The field's toolbar has a full-screen button for long text. Esc or the same button returns to the panel. Nothing needs to be configured.
 - The editor needs [Quill 2](https://quilljs.com) for this field. Without Quill, the field becomes a textarea and stores a plain string, which `renderRich` also understands.
 
 ### Arrays

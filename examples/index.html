@@ -4,22 +4,138 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PacEditor examples</title>
-  <meta name="description" content="Live examples of PacEditor, a drag-and-drop page builder in plain JavaScript: the full demo, a basic script-tag setup and custom blocks.">
+  <meta name="description" content="Live examples of PacEditor, a drag-and-drop page builder in plain JavaScript: basic setup, the full demo, custom blocks, toolbar buttons and events, and server-side rendering.">
   <link rel="canonical" href="https://chooyee.github.io/pac-editor/examples/">
   <style>
-    body { font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; max-width: 720px; margin: 0 auto; padding: 32px 16px; color: #17201e; background: #f8faf9; }
-    @media (prefers-color-scheme: dark) { body { color: #e4ebe9; background: #121716; } a { color: #7d9cf2; } code { background: #252e2c; } }
-    h1 { margin: 0 0 4px; } li { margin: 10px 0; } code { background: #eef1f0; padding: 1px 5px; border-radius: 4px; font-size: .9em; }
+    :root {
+      --fg: #17201e; --muted: #5d6b68; --bg: #f8faf9; --card: #ffffff; --line: #d5dcda; --accent: #2f5bd3; --code: #eef1f0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --fg: #e4ebe9; --muted: #95a39f; --bg: #121716; --card: #181e1d; --line: #2c3533; --accent: #7d9cf2; --code: #252e2c; }
+    }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; max-width: 820px; margin: 0 auto; padding: 32px 16px 64px; color: var(--fg); background: var(--bg); }
+    a { color: var(--accent); }
+    h1 { margin: 0 0 4px; }
+    h2 { margin: 40px 0 12px; font-size: 20px; }
+    .lead { color: var(--muted); margin: 0 0 8px; }
+    code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: .88em; overflow-wrap: anywhere; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin: 12px 0; }
+    .card h3 { margin: 0 0 4px; font-size: 17px; }
+    .card p { margin: 6px 0; }
+    .card ul { margin: 6px 0; padding-left: 1.2em; }
+    .card li { margin: 3px 0; }
+    .links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 14px; font-weight: 500; }
+    .tag { display: inline-block; font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; margin-left: 6px; vertical-align: 2px; font-weight: 400; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .table-wrap { overflow-x: auto; }
+    pre { background: var(--code); padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
   </style>
 </head>
 <body>
   <h1>PacEditor examples</h1>
-  <p>Live examples of <a href="../">PacEditor</a>. To run them locally, use <code>npm run dev</code> and open <code>http://localhost:8000/examples/</code>.</p>
-  <ul>
-    <li><a href="basic/">Basic</a> — script tags, inline page data, autosaved draft. Also works when opened as a file.</li>
-    <li><a href="demo/">Demo</a> — the full sample page; “Publish &amp; view” renders it on a <a href="demo/view.html">public page</a>.</li>
-    <li><a href="custom-blocks/">Custom blocks</a> — ES module import, three new blocks (rich text, array and custom fields), one block removed.</li>
-    <li><code>node examples/server-render/render.mjs</code> — render page data to static HTML on the server.</li>
-  </ul>
+  <p class="lead">Working pages that show how to use <a href="../">PacEditor</a>. Each one is a single HTML file you can copy. The comments in the source explain each step.</p>
+
+  <h2>Run them locally</h2>
+  <pre>npm install
+npm run dev        # builds dist/ on change and serves the project
+# open http://localhost:8000/examples/</pre>
+  <p>The Basic example also works when opened directly as a file. The others need a local server, because browsers block ES modules and <code>fetch</code> on <code>file://</code>.</p>
+
+  <h2>Find an example by task</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>I want to…</th><th>Example</th><th>Docs</th></tr></thead>
+      <tbody>
+        <tr><td>Add the editor to a page with script tags</td><td><a href="#basic">Basic</a></td><td><a href="https://github.com/chooyee/pac-editor/blob/main/docs/getting-started.md">Getting started</a></td></tr>
+        <tr><td>Load a page and save it to my server</td><td><a href="#basic">Basic</a>, <a href="#toolbar-events">Toolbar &amp; events</a></td><td><a href="https://github.com/chooyee/pac-editor/blob/main/docs/getting-started.md">Getting started</a></td></tr>
+        <tr><td>Autosave a draft in the browser</td><td><a href="#basic">Basic</a>, <a href="#demo">Demo</a></td><td><a href="https://github.com/chooyee/pac-editor/blob/main/docs/editor-api.md#options"><code>storageKey</code></a></td></tr>
+        <tr><td>Hide Preview, Import or Publish</td><td><a href="#toolbar-events">Toolbar &amp; events</a></td><td><a href="https://github.com/chooyee/pac-editor/blob/main/docs/editor-api.md#toolbar">Toolbar</a></td></tr>
+        <tr><td>Add my own toolbar button, such as Save draft</td><td><a href="#toolbar-events">Toolbar &amp; events</a></td><td><a href="https://github.com/chooyee/pac-editor/blob/main/docs/editor-api.md#toolbar">Toolbar</a></td></tr>
+        <tr><td>Control the editor from my own UI</td><td><a href="#toolbar-events">Toolbar &amp; events</a></td><td><a href="https://github.com/chooyee/pac-editor/blob/main/docs/editor-api.md#methods">Methods</a></td></tr>
+        <tr><td>React to selection, changes or publishing</td><td><a href="#toolbar-events">Toolbar &amp; events</a></td><td><a href="https://github.com/chooyee/pac-editor/blob/main/docs/editor-api.md#events">Events</a></td></tr>
+        <tr><td>Warn before leaving with unsaved changes</td><td><a href="#toolbar-events">Toolbar &amp; events</a></td><td><a href="https://github.com/chooyee/pac-editor/blob/main/docs/editor-api.md#events">Events</a></td></tr>
+        <tr><td>Add my own blocks or remove built-in ones</td><td><a href="#custom-blocks">Custom blocks</a></td><td><a href="https://github.com/chooyee/pac-editor/blob/main/docs/configuration.md">Configuration</a></td></tr>
+        <tr><td>Use rich text, list or custom fields in a block</td><td><a href="#custom-blocks">Custom blocks</a></td><td><a href="https://github.com/chooyee/pac-editor/blob/main/docs/configuration.md">Configuration</a></td></tr>
+        <tr><td>Show the saved page to visitors in the browser</td><td><a href="#demo">Demo</a></td><td><a href="https://github.com/chooyee/pac-editor/blob/main/docs/rendering.md">Rendering</a></td></tr>
+        <tr><td>Render the page to HTML on the server</td><td><a href="#server-render">Server render</a></td><td><a href="https://github.com/chooyee/pac-editor/blob/main/docs/rendering.md">Rendering</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Getting started</h2>
+
+  <div class="card" id="basic">
+    <h3>Basic <span class="tag">script tags</span></h3>
+    <p>The smallest working setup: one stylesheet, two scripts and a container with a height.</p>
+    <ul>
+      <li>Loads Quill for rich text (optional; without it the Text block uses a plain textarea).</li>
+      <li>Starts from inline page data in the Puck shape: <code>{ root: { props }, content: [...] }</code>.</li>
+      <li>Autosaves a draft in this browser with <code>storageKey</code>.</li>
+      <li>Shows where to send the page to your server in <code>onPublish</code>, and renders it to HTML with <code>PacEditor.render</code>.</li>
+    </ul>
+    <div class="links"><a href="basic/">Open example</a><a href="https://github.com/chooyee/pac-editor/blob/main/examples/basic/index.html">View source</a></div>
+  </div>
+
+  <div class="card" id="demo">
+    <h3>Demo <span class="tag">full sample page</span></h3>
+    <p>A complete page with nested layouts (Columns, Card grid), pictures and rich text. Try dragging blocks, the Tablet and Mobile widths, and dark mode.</p>
+    <ul>
+      <li>Loads page data with <code>fetch</code> from <a href="data/sample-page.json"><code>data/sample-page.json</code></a>.</li>
+      <li><code>exampleData</code> adds <strong>Load example</strong> to the Import dialog.</li>
+      <li><code>publishLabel</code> renames Publish to “Publish &amp; view”, and <code>onPublish</code> opens a <a href="demo/view.html">public page</a> that renders the saved data with only the block styles.</li>
+    </ul>
+    <div class="links"><a href="demo/">Open example</a><a href="https://github.com/chooyee/pac-editor/blob/main/examples/demo/index.html">View editor source</a><a href="https://github.com/chooyee/pac-editor/blob/main/examples/demo/view.html">View public page source</a></div>
+  </div>
+
+  <h2>Customising the editor</h2>
+
+  <div class="card" id="toolbar-events">
+    <h3>Toolbar &amp; events <span class="tag">new</span></h3>
+    <p>How to fit the editor into your own app: choose which buttons it shows, add your own, and react to what the user does.</p>
+    <ul>
+      <li>Hides Preview, Import and the viewport buttons with the <code>toolbar</code> option.</li>
+      <li>Adds a <strong>Save draft</strong> button next to Publish. Its <code>onClick</code> returns a promise, so the button is disabled while saving.</li>
+      <li>An app bar outside the editor calls <code>setPreview()</code>, <code>setViewport()</code>, <code>undo()</code> and <code>openImport()</code>, so the hidden features still work.</li>
+      <li>Listens to <code>select</code>, <code>change</code>, <code>preview</code>, <code>viewport</code>, <code>publish</code> and <code>import</code>, through the <code>on</code> option and <code>editor.on()</code>, and logs them below the editor.</li>
+      <li>Warns before leaving the page when there are changes that were not saved.</li>
+      <li>Select the Text block and use the full-screen button in its toolbar to edit long text (Esc to exit).</li>
+    </ul>
+    <p>This example loads the build from this repository, because these features are not yet in the version on npm.</p>
+    <div class="links"><a href="toolbar-events/">Open example</a><a href="https://github.com/chooyee/pac-editor/blob/main/examples/toolbar-events/index.html">View source</a></div>
+  </div>
+
+  <div class="card" id="custom-blocks">
+    <h3>Custom blocks <span class="tag">ES module</span></h3>
+    <p>How to add your own blocks with <code>extendConfig</code>, starting from the built-in ones.</p>
+    <ul>
+      <li><strong>Quote</strong> uses a <code>richtext</code> field, rendered safely with <code>renderRich</code>.</li>
+      <li><strong>Stats</strong> uses an <code>array</code> field with <code>defaultItemProps</code>, <code>getItemSummary</code> and <code>max</code>.</li>
+      <li><strong>Rating</strong> uses a <code>custom</code> field (a range slider) that calls <code>onChange</code>.</li>
+      <li>Removes the built-in Spacer block and groups the new blocks in a palette category.</li>
+      <li>Each <code>render</code> escapes values with <code>esc()</code> and checks links with <code>safeUrl()</code>. The block styles are scoped under <code>.fp-site</code>.</li>
+    </ul>
+    <div class="links"><a href="custom-blocks/">Open example</a><a href="https://github.com/chooyee/pac-editor/blob/main/examples/custom-blocks/index.html">View source</a></div>
+  </div>
+
+  <h2>Showing pages to visitors</h2>
+
+  <div class="card" id="server-render">
+    <h3>Server render <span class="tag">Node.js</span></h3>
+    <p>Turns saved page data into a static HTML file, with no browser or DOM. Use the same code inside a route handler (Express, Fastify, Next.js, a worker).</p>
+    <ul>
+      <li>Imports from <code>pac-editor/render</code>, which has no DOM dependency.</li>
+      <li>Checks the data with <code>validateData</code> before rendering.</li>
+      <li>The page only needs <code>blocks.min.css</code>, not the editor styles.</li>
+    </ul>
+    <pre>npm run build
+node examples/server-render/render.mjs   # writes examples/server-render/output.html</pre>
+    <div class="links"><a href="https://github.com/chooyee/pac-editor/blob/main/examples/server-render/render.mjs">View source</a></div>
+  </div>
+
+  <h2>More</h2>
+  <p>The full reference is in the <a href="https://github.com/chooyee/pac-editor/tree/main/docs">documentation</a>: <a href="https://github.com/chooyee/pac-editor/blob/main/docs/getting-started.md">Getting started</a>, <a href="https://github.com/chooyee/pac-editor/blob/main/docs/configuration.md">Configuration</a>, <a href="https://github.com/chooyee/pac-editor/blob/main/docs/editor-api.md">Editor API</a>, <a href="https://github.com/chooyee/pac-editor/blob/main/docs/rendering.md">Rendering</a> and <a href="https://github.com/chooyee/pac-editor/blob/main/docs/security.md">Security</a>.</p>
 </body>
 </html>

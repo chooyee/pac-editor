@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PacEditor — toolbar and events</title>
+  <meta name="description" content="How to hide PacEditor's toolbar buttons, add your own Save draft and Publish buttons, drive the editor from your own UI and listen for editor events.">
+  <link rel="canonical" href="https://chooyee.github.io/pac-editor/examples/toolbar-events/">
+
+  <!-- This example uses the toolbar and events API added after 0.1, so it loads the build from this
+       repository (npm run dev). In your project, load it from npm or jsDelivr as the other examples do. -->
+  <link rel="stylesheet" href="../../dist/pac-editor.css">
+  <style>
+    html, body { margin: 0; height: 100%; }
+    body {
+      display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%;
+      font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: #17201e; background: #f8faf9;
+    }
+    #editor { min-height: 0; }
+    /* "Your app": controls that live outside the editor */
+    .app-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #d5dcda; }
+    .app-bar strong { margin-right: auto; }
+    .app-bar button, .app-bar select { font: inherit; padding: 4px 10px; border: 1px solid #d5dcda; border-radius: 6px; background: #fff; color: inherit; }
+    .log { margin: 0; padding: 8px 16px; height: 96px; overflow: auto; border-top: 1px solid #d5dcda; font: 12px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+    .log:empty::before { content: 'Editor events appear here.'; color: #5d6b68; }
+    @media (prefers-color-scheme: dark) {
+      body { color: #e4ebe9; background: #121716; }
+      .app-bar, .log { border-color: #2c3533; }
+      .app-bar button, .app-bar select { background: #1d2423; border-color: #2c3533; }
+      .log:empty::before { color: #95a39f; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-bar" aria-label="Your app's controls">
+    <strong>Your app</strong>
+    <button type="button" id="preview" aria-pressed="false">Preview</button>
+    <label>Width
+      <select id="viewport">
+        <option value="desktop">Desktop</option>
+        <option value="tablet">Tablet</option>
+        <option value="mobile">Mobile</option>
+      </select>
+    </label>
+    <button type="button" id="undo">Undo</button>
+    <button type="button" id="import">Import JSON…</button>
+  </div>
+
+  <div id="editor"></div>
+
+  <pre class="log" id="log" aria-live="polite"></pre>
+
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+  <script src="../../dist/pac-editor.js"></script>
+  <script>
+    // A pretend server. In your app these would be fetch() calls to your API.
+    const api = {
+      saveDraft: data => wait(400).then(() => localStorage.setItem('pac-editor-toolbar-draft', JSON.stringify(data))),
+      publish: data => wait(600).then(() => localStorage.setItem('pac-editor-toolbar-published', JSON.stringify(data)))
+    };
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+
+    const logEl = document.getElementById('log');
+    const log = text => { logEl.textContent += `${new Date().toLocaleTimeString()}  ${text}\n`; logEl.scrollTop = logEl.scrollHeight; };
+
+    let dirty = false; // changes not yet saved as a draft or published
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('pac-editor-toolbar-draft')); } catch (e) { /* no draft */ }
+
+    const editor = PacEditor.createEditor('#editor', {
+      title: 'Toolbar & events',
+      data: saved || {
+        root: { props: { title: 'Toolbar and events', footer: '' } },
+        content: [
+          { type: 'Heading', props: { id: 'Heading-1', text: 'Try the buttons', level: 'h2', align: 'left' } },
+          { type: 'Text', props: { id: 'Text-1', text: { ops: [{ insert: 'Select this text block, then use the full-screen button at the right of its toolbar to write comfortably. Press Esc to come back.\n' }] }, align: 'left' } }
+        ]
+      },
+
+      // 1. The built-in primary button. publishLabel renames it; onPublish is what it does.
+      publishLabel: 'Publish',
+      onPublish: async data => {             // returning a promise keeps the button disabled until it settles
+        await api.publish(data);             // throw (or reject) and the editor shows "Could not publish: …"
+        dirty = false;
+        log('published');
+      },
+
+      // 2. Hide built-in buttons and add your own. Your app bar above drives the hidden ones.
+      toolbar: {
+        preview: false,
+        viewports: false,
+        import: false,
+        buttons: [
+          {
+            id: 'draft',
+            label: 'Save draft',
+            // onClick(editor, event). A returned promise disables the button until it settles;
+            // a thrown error is shown as a message in the editor.
+            onClick: async ed => {
+              await api.saveDraft(ed.getData());
+              dirty = false;
+              log('draft saved');
+            }
+          }
+        ]
+      },
+
+      // 3. Event handlers can be passed here, or added later with editor.on().
+      on: {
+        select: id => log(`select   ${id ?? '(page settings)'}`),
+        publish: () => log('publish  started')
+      }
+    });
+
+    // editor.on() returns a function that removes the handler.
+    let changes = 0;
+    editor.on('change', () => { changes++; dirty = true; log(`change   #${changes}`); });
+    let previewOn = false;
+    editor.on('preview', on => {
+      previewOn = on;
+      log(`preview  ${on ? 'on' : 'off'}`);
+      const b = document.getElementById('preview');
+      b.textContent = on ? 'Edit' : 'Preview'; b.setAttribute('aria-pressed', String(on));
+    });
+    editor.on('viewport', name => { log(`viewport ${name}`); document.getElementById('viewport').value = name; });
+    editor.on('import', () => log('import   page loaded'));
+
+    // 4. Your own UI calls the same methods the built-in buttons use.
+    document.getElementById('preview').onclick = () => editor.setPreview(!previewOn);
+    document.getElementById('viewport').onchange = e => editor.setViewport(e.target.value);
+    document.getElementById('undo').onclick = () => editor.undo();
+    document.getElementById('import').onclick = () => editor.openImport();
+
+    // 5. Warn before leaving with unsaved changes.
+    addEventListener('beforeunload', e => { if (dirty) e.preventDefault(); });
+  </script>
+</body>
+</html>
