@@ -36,10 +36,10 @@
 .fp-site .b-head { padding: 24px 32px 8px; }
 .fp-site .b-head h1 { font-size: 34px; } .fp-site .b-head h2 { font-size: 26px; } .fp-site .b-head h3 { font-size: 20px; }
 .fp-site .b-text { padding: 8px 32px; }
-.fp-site .b-text p { margin: 0 0 12px; max-width: 68ch; }
-.fp-site .b-text ul, .fp-site .b-text ol { margin: 0 0 12px; padding-left: 1.4em; max-width: 68ch; }
+.fp-site .b-text p { margin: 0 0 12px; }
+.fp-site .b-text ul, .fp-site .b-text ol { margin: 0 0 12px; padding-left: 1.4em; }
 .fp-site .b-text li { margin: 2px 0; }
-.fp-site .b-text blockquote { margin: 0 0 12px; padding-left: 14px; border-left: 3px solid var(--fp-line); color: var(--fp-paper-muted); max-width: 68ch; }
+.fp-site .b-text blockquote { margin: 0 0 12px; padding-left: 14px; border-left: 3px solid var(--fp-line); color: var(--fp-paper-muted); }
 .fp-site .b-text a { color: var(--fp-accent); }
 .fp-site .b-btnrow { padding: 12px 32px; }
 .fp-site .b-btn { display: inline-block; padding: 10px 18px; border-radius: 6px; font-weight: 600; text-decoration: none; background: var(--fp-accent); color: var(--fp-on-accent); border: 1px solid var(--fp-accent); }
