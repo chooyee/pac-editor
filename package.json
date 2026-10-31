@@ -1,6 +1,6 @@
 {
   "name": "pac-editor",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Framework-free drag-and-drop page builder with a Puck-compatible data model. Drop it into any HTML page with one script tag.",
   "keywords": [
     "page-builder",

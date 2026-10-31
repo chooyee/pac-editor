@@ -1,12 +1,21 @@
 name: Release
 
+# Publishes to npm automatically when the version in package.json on main is not on npm yet.
+# Bump the version (npm version patch|minor|major) and push to main; every other push is skipped.
+# After publishing it tags the commit v<version> and creates a GitHub release.
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths: [package.json]
+  workflow_dispatch:
 
 permissions:
   contents: write
   id-token: write   # npm provenance
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -18,13 +27,42 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
           cache: npm
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
-      - run: npm publish --provenance --access public
+
+      - name: Check whether this version is already on npm
+        id: check
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "$NAME@$VERSION is already published; nothing to do."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+          # Pre-releases (1.2.0-beta.1) go to the "next" dist-tag so they are not installed by default
+          case "$VERSION" in *-*) echo "dist_tag=next" >> "$GITHUB_OUTPUT" ;; *) echo "dist_tag=latest" >> "$GITHUB_OUTPUT" ;; esac
+
+      - if: steps.check.outputs.publish == 'true'
+        run: npm ci
+      - if: steps.check.outputs.publish == 'true'
+        run: npm test
+      - if: steps.check.outputs.publish == 'true'
+        run: npm run build
+
+      - name: Publish to npm
+        if: steps.check.outputs.publish == 'true'
+        run: npm publish --provenance --access public --tag ${{ steps.check.outputs.dist_tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: GitHub release
-        run: gh release create "$GITHUB_REF_NAME" --generate-notes dist/pac-editor.min.js dist/pac-editor.min.css dist/blocks.min.css
+
+      - name: Tag and create the GitHub release
+        if: steps.check.outputs.publish == 'true'
+        run: |
+          TAG="v${{ steps.check.outputs.version }}"
+          PRERELEASE=""
+          [ "${{ steps.check.outputs.dist_tag }}" = "next" ] && PRERELEASE="--prerelease"
+          gh release create "$TAG" --target "$GITHUB_SHA" --generate-notes $PRERELEASE \
+            dist/pac-editor.min.js dist/pac-editor.min.css dist/blocks.min.css
         env:
           GH_TOKEN: ${{ github.token }}

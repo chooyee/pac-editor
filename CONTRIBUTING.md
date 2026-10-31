@@ -59,8 +59,14 @@ Use `feat!:` or a `BREAKING CHANGE:` footer for changes that break the public AP
 
 ## Releasing (maintainers)
 
-1. Move the **Unreleased** notes in `CHANGELOG.md` to a new version heading.
-2. `npm version <patch|minor|major>`. This updates `package.json` and creates a tag.
-3. `git push --follow-tags`. The release workflow publishes to npm with provenance.
+Releases are automatic: when `package.json` on `main` has a version that is not on npm yet, the [release workflow](.github/workflows/release.yml) tests, builds and publishes it with provenance, then tags the commit `v<version>` and creates a GitHub release with the built files.
+
+1. Move the **Unreleased** notes in `CHANGELOG.md` to a new version heading, and update the compare links at the bottom.
+2. `npm version <patch|minor|major> --no-git-tag-version`. This updates `package.json` and `package-lock.json`; the workflow creates the tag.
+3. Commit (for example `Release 0.2.0`) and push to `main`, directly or through a pull request.
+
+A version with a pre-release part, such as `0.2.0-beta.1`, is published under the `next` dist-tag and marked as a pre-release on GitHub, so `npm install pac-editor` keeps installing the latest stable version. Pushes that do not change the version are skipped. To retry a failed release, run the workflow by hand from the Actions tab.
+
+The workflow needs an npm automation token in the repository secret `NPM_TOKEN`.
 
 By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE).

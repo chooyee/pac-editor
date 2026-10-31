@@ -5,11 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-31
+
 ### Added
 - `toolbar` option: hide Undo/Redo, viewport, Preview, Import or Publish buttons, and add your own buttons with `onClick(editor, event)`.
 - Events: `editor.on(type, handler)` / `off`, and an `on` option, for `change`, `select`, `preview`, `viewport`, `publish` and `import`.
 - Editor methods `setPreview(on)` and `setViewport(name)`; `publish()` and `openImport()` are now documented.
 - Full-screen mode for rich text fields (toolbar button; Esc exits).
+- Toolbar & events example, and an examples index that maps common tasks to examples and docs.
 
 ### Changed
 - Text, lists and quotes in the Text block are no longer limited to 68 characters wide.
@@ -35,5 +38,6 @@ First release as a library, built from the single-file prototype (kept in `proto
 - CSS classes and variables now use the `fp-` prefix; the published root is `.fp-site` (was `.site`).
 - Style values in built-in blocks (column ratio, picture size and shape) come from fixed lists instead of being escaped.
 
-[Unreleased]: https://github.com/chooyee/pac-editor/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/chooyee/pac-editor/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/chooyee/pac-editor/releases/tag/v0.2.0
 [0.1.0]: https://github.com/chooyee/pac-editor/releases/tag/v0.1.0
