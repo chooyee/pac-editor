@@ -36,7 +36,7 @@ jobs:
           # on npm (toolbar-events) load ../../dist/, so the fresh build is published too.
           cp -r examples _site/
           cp -r dist _site/
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
